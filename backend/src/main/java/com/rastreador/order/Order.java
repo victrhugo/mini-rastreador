@@ -142,6 +142,11 @@ public class Order {
         return updatedAt;
     }
 
+    /** Quando o pedido entrou na etapa atual (última mudança do histórico). */
+    public Instant getStageStartedAt() {
+        return history.isEmpty() ? createdAt : history.getLast().getChangedAt();
+    }
+
     public long getVersion() {
         return version;
     }

@@ -20,6 +20,9 @@ function makeOrder(status: OrderStatus, allowedTransitions: OrderStatus[]): Orde
     createdAt: '2026-10-16T12:00:00Z',
     updatedAt: '2026-10-16T12:00:00Z',
     version: 3,
+    stageStartedAt: '2026-10-16T12:00:00Z',
+    stageDeadline: null,
+    delayed: false,
   }
 }
 

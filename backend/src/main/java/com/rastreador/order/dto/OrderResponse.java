@@ -11,8 +11,8 @@ import com.rastreador.order.OrderStatus;
 import com.rastreador.order.OrderStatusHistory;
 
 /**
- * Representação do pedido na API. {@code allowedTransitions} vem do back-end
- * para o front não precisar duplicar as regras da máquina de estados.
+ * Representação do pedido na API. {@code allowedTransitions} e o prazo da etapa
+ * ({@code stageDeadline}) vêm do back-end para o front não duplicar regras de negócio.
  */
 public record OrderResponse(
         Long id,
@@ -26,7 +26,10 @@ public record OrderResponse(
         String createdBy,
         Instant createdAt,
         Instant updatedAt,
-        long version) {
+        long version,
+        Instant stageStartedAt,
+        Instant stageDeadline,
+        boolean delayed) {
 
     public record CustomerResponse(String name, String phone) {
     }
@@ -41,7 +44,11 @@ public record OrderResponse(
     public record HistoryResponse(OrderStatus from, OrderStatus to, String changedBy, Instant changedAt) {
     }
 
-    public static OrderResponse from(Order order) {
+    /**
+     * @param stageDeadline prazo da etapa atual ({@code null} se não houver)
+     * @param delayed       se o prazo já passou no momento da resposta
+     */
+    public static OrderResponse from(Order order, Instant stageDeadline, boolean delayed) {
         Address address = order.getAddress();
         return new OrderResponse(
                 order.getId(),
@@ -56,7 +63,10 @@ public record OrderResponse(
                 order.getCreatedBy().getName(),
                 order.getCreatedAt(),
                 order.getUpdatedAt(),
-                order.getVersion());
+                order.getVersion(),
+                order.getStageStartedAt(),
+                stageDeadline,
+                delayed);
     }
 
     private static ItemResponse toItem(OrderItem item) {

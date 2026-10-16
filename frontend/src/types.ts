@@ -69,6 +69,12 @@ export interface Order {
   updatedAt: string
   /** Versão do pedido; enviada ao mudar o status para detectar alterações concorrentes. */
   version: number
+  /** Quando o pedido entrou na etapa atual. */
+  stageStartedAt: string
+  /** Prazo para sair da etapa atual; null em etapas sem limite (finais). */
+  stageDeadline: string | null
+  /** Se já estava atrasado quando a API respondeu (o front recalcula com o relógio). */
+  delayed: boolean
 }
 
 export interface CreateOrderInput {

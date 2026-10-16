@@ -8,6 +8,7 @@ import {
   MopedIcon,
   PlusIcon,
   XIcon,
+  WarningIcon,
   type Icon,
 } from '@phosphor-icons/react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -17,13 +18,16 @@ import { useOrders } from '../api/orders'
 import { LiveIndicator } from '../components/LiveIndicator'
 import { QuickActions } from '../components/StatusActions'
 import { StatusBadge } from '../components/StatusBadge'
+import { StageTimer } from '../components/StageTimer'
 import { StatusProgress } from '../components/StatusProgress'
 import { Alert, buttonClass, Card, Skeleton } from '../components/ui'
 import { formatMoney, formatRelative, isToday } from '../format'
+import { useNow } from '../hooks/useNow'
+import { stageTiming } from '../sla'
 import { DELIVERY_STEPS, STATUS } from '../status'
 import { ORDER_STATUSES, type Order, type OrderStatus } from '../types'
 
-type Filter = OrderStatus | 'TODOS'
+type Filter = OrderStatus | 'TODOS' | 'ATRASADOS'
 type View = 'list' | 'board'
 
 const VIEW_KEY = 'rastreador.ordersView'
@@ -51,8 +55,11 @@ export function OrdersPage() {
     }
   }
 
+  const now = useNow()
   const searched = useMemo(() => search(orders ?? [], query), [orders, query])
-  const visible = filter === 'TODOS' ? searched : searched.filter((order) => order.status === filter)
+  const delayed = searched.filter((order) => stageTiming(order, now).delayed)
+  const visible =
+    filter === 'TODOS' ? searched : filter === 'ATRASADOS' ? delayed : searched.filter((order) => order.status === filter)
   const countBy = (status: OrderStatus) => searched.filter((order) => order.status === status).length
 
   return (
@@ -87,7 +94,7 @@ export function OrdersPage() {
         </div>
       </header>
 
-      <Kpis orders={orders} loading={isPending} />
+      <Kpis orders={orders} delayed={delayed.length} loading={isPending} />
 
       <div className="flex items-center justify-between gap-3">
         {view === 'list' ? (
@@ -97,6 +104,15 @@ export function OrdersPage() {
             aria-label="Filtrar por status"
           >
             <FilterChip active={filter === 'TODOS'} onClick={() => setFilter('TODOS')} label="Todos" count={searched.length} />
+            {delayed.length > 0 && (
+              <FilterChip
+                alert
+                active={filter === 'ATRASADOS'}
+                onClick={() => setFilter('ATRASADOS')}
+                label="Atrasados"
+                count={delayed.length}
+              />
+            )}
             {ORDER_STATUSES.map((status) => (
               <FilterChip
                 key={status}
@@ -140,7 +156,7 @@ function search(orders: Order[], query: string) {
 
 /* ---------- Indicadores ---------- */
 
-function Kpis({ orders, loading }: { orders?: Order[]; loading: boolean }) {
+function Kpis({ orders, delayed, loading }: { orders?: Order[]; delayed: number; loading: boolean }) {
   const list = orders ?? []
   const open = list.filter((o) => !['ENTREGUE', 'CANCELADO'].includes(o.status)).length
   const onRoute = list.filter((o) => o.status === 'SAIU_PARA_ENTREGA').length
@@ -150,32 +166,43 @@ function Kpis({ orders, loading }: { orders?: Order[]; loading: boolean }) {
     .reduce((sum, o) => sum + o.total, 0)
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
       <Kpi label="Em andamento" value={open} Icon={ClockIcon} loading={loading} />
+      <Kpi label="Atrasados" value={delayed} Icon={WarningIcon} loading={loading} alert={delayed > 0} />
       <Kpi label="Em rota agora" value={onRoute} Icon={MopedIcon} loading={loading} />
       <Kpi label="Entregues hoje" value={deliveredToday} Icon={CheckCircleIcon} loading={loading} />
-      <Kpi label="Vendas de hoje" value={formatMoney(salesToday)} Icon={CurrencyCircleDollarIcon} loading={loading} highlight />
+      <Kpi
+        label="Vendas de hoje"
+        value={formatMoney(salesToday)}
+        Icon={CurrencyCircleDollarIcon}
+        loading={loading}
+        highlight
+        className="col-span-2 sm:col-span-1"
+      />
     </div>
   )
 }
 
-function Kpi({ label, value, Icon, loading, highlight }: {
+function Kpi({ label, value, Icon, loading, highlight, alert, className = '' }: {
   label: string
   value: ReactNode
   Icon: Icon
   loading: boolean
   highlight?: boolean
+  /** Destaca o indicador como problema (ex.: há pedidos atrasados). */
+  alert?: boolean
+  className?: string
 }) {
   return (
-    <Card className="p-4">
+    <Card className={`p-4 ${alert ? 'border-[color-mix(in_oklab,var(--danger)_35%,transparent)] bg-danger-soft' : ''} ${className}`}>
       <div className="flex items-center justify-between">
-        <p className="text-[13px] text-ink-2">{label}</p>
-        <Icon className={`size-[18px] ${highlight ? 'text-accent' : 'text-ink-3'}`} />
+        <p className={`text-[13px] ${alert ? 'text-danger' : 'text-ink-2'}`}>{label}</p>
+        <Icon className={`size-[18px] ${alert ? 'text-danger' : highlight ? 'text-accent' : 'text-ink-3'}`} weight={alert ? 'fill' : 'regular'} />
       </div>
       {loading ? (
         <Skeleton className="mt-3 h-7 w-16" />
       ) : (
-        <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+        <p className={`mt-2 text-2xl font-semibold tracking-tight tabular-nums ${alert ? 'text-danger' : ''}`}>{value}</p>
       )}
     </Card>
   )
@@ -244,6 +271,7 @@ function OrderRow({ order }: { order: Order }) {
       <div className="col-span-2 flex flex-col items-start gap-2 md:col-span-1">
         <StatusBadge status={order.status} size="sm" />
         <div className="w-full max-w-[160px]"><StatusProgress order={order} /></div>
+        <StageTimer order={order} />
       </div>
       <div className="relative col-span-2 flex justify-start md:col-span-1 md:justify-end">
         <QuickActions order={order} />
@@ -306,8 +334,14 @@ function Board({ orders, onShowCancelled }: { orders: Order[]; onShowCancelled: 
 }
 
 function BoardCard({ order }: { order: Order }) {
+  const now = useNow()
+  const delayed = stageTiming(order, now).delayed
   return (
-    <div className="relative rounded-lg border border-line bg-surface p-3.5 shadow-card transition-shadow hover:shadow-pop">
+    <div
+      className={`relative rounded-lg border bg-surface p-3.5 shadow-card transition-shadow hover:shadow-pop ${
+        delayed ? 'border-danger' : 'border-line'
+      }`}
+    >
       <Link to={`/orders/${order.id}`} className="absolute inset-0 rounded-lg" aria-label={`Abrir pedido ${order.id}`} />
       <div className="flex items-center justify-between text-xs text-ink-3">
         <span className="font-mono">#{order.id}</span>
@@ -318,6 +352,7 @@ function BoardCard({ order }: { order: Order }) {
         <span className="shrink-0 text-sm font-medium tabular-nums">{formatMoney(order.total)}</span>
       </div>
       <p className="truncate text-[13px] text-ink-2">{order.address.street}, {order.address.number}</p>
+      <div className="mt-2"><StageTimer order={order} /></div>
       {order.allowedTransitions.length > 0 && (
         <div className="relative mt-3 [&>div]:justify-end">
           <QuickActions order={order} narrow />
@@ -329,11 +364,13 @@ function BoardCard({ order }: { order: Order }) {
 
 /* ---------- Controles e estados ---------- */
 
-function FilterChip({ active, label, count, status, onClick }: {
+function FilterChip({ active, label, count, status, alert, onClick }: {
   active: boolean
   label: string
   count: number
   status?: OrderStatus
+  /** Filtro de problema (atrasados): ganha destaque vermelho. */
+  alert?: boolean
   onClick: () => void
 }) {
   return (
@@ -348,6 +385,7 @@ function FilterChip({ active, label, count, status, onClick }: {
       }`}
     >
       {status && <span className={`st-${status} st-fill size-1.5 rounded-full`} />}
+      {alert && <WarningIcon className={`size-3.5 ${active ? '' : 'text-danger'}`} weight="bold" />}
       {label}
       <span className={`tabular-nums ${active ? 'text-canvas/60' : 'text-ink-3'}`}>{count}</span>
     </button>

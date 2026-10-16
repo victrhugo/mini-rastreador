@@ -40,6 +40,12 @@ app:
     # Confere no DNS se o domínio do e-mail recebe mensagens (sem API externa).
     check-domain: ${EMAIL_CHECK_DOMAIN:true}
     dns-timeout: 2s
+  sla:
+    # Tempo máximo esperado em cada etapa; passou disso, o pedido aparece como atrasado.
+    limits:
+      RECEBIDO: 10m
+      EM_PREPARO: 30m
+      SAIU_PARA_ENTREGA: 45m
   login:
     max-attempts: 5
     lock-duration: 15m

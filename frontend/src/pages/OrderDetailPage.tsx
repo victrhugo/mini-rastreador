@@ -1,4 +1,12 @@
-import { ArrowLeftIcon, ArrowSquareOutIcon, MapPinIcon, PhoneIcon, ReceiptIcon, XCircleIcon } from '@phosphor-icons/react'
+import {
+  ArrowLeftIcon,
+  ArrowSquareOutIcon,
+  MapPinIcon,
+  PhoneIcon,
+  ReceiptIcon,
+  WarningIcon,
+  XCircleIcon,
+} from '@phosphor-icons/react'
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { ApiError } from '../api/client'
@@ -10,6 +18,8 @@ import { StatusStepper } from '../components/StatusStepper'
 import { StatusTimeline } from '../components/StatusTimeline'
 import { Alert, Avatar, buttonClass, Card, Skeleton } from '../components/ui'
 import { formatDateTime, formatMoney, formatRelative } from '../format'
+import { useNow } from '../hooks/useNow'
+import { formatMinutes, stageTiming } from '../sla'
 import { STATUS } from '../status'
 import type { Order } from '../types'
 
@@ -72,6 +82,7 @@ function OrderDetail({ order, updatedAt, fetching }: { order: Order; updatedAt: 
             <div>
               <p className="font-semibold">{label}</p>
               <p className="text-sm text-ink-2">{description}</p>
+              <StageDeadline order={order} />
             </div>
           </div>
           <StatusActions order={order} />
@@ -208,5 +219,26 @@ function DetailSkeleton() {
         <Skeleton className="h-64 rounded-xl" />
       </div>
     </div>
+  )
+}
+
+/** Tempo na etapa atual e prazo; vira alerta quando o prazo passa. */
+function StageDeadline({ order }: { order: Order }) {
+  const now = useNow()
+  const timing = stageTiming(order, now)
+  if (timing.limit === null) return null
+
+  if (timing.delayed) {
+    return (
+      <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-danger-soft px-2 py-1 text-xs font-medium text-danger">
+        <WarningIcon className="size-3.5" weight="bold" />
+        Atrasado {formatMinutes(timing.late)}: está há {formatMinutes(timing.elapsed)} nesta etapa (limite {formatMinutes(timing.limit)})
+      </p>
+    )
+  }
+  return (
+    <p className="mt-1 text-xs text-ink-3">
+      Há {formatMinutes(timing.elapsed)} nesta etapa, limite de {formatMinutes(timing.limit)}
+    </p>
   )
 }

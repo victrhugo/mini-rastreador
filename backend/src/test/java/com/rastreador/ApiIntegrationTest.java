@@ -228,6 +228,9 @@ class ApiIntegrationTest {
                     .andExpect(jsonPath("$.allowedTransitions[1]").value("CANCELADO"))
                     .andExpect(jsonPath("$.history.length()").value(1))
                     .andExpect(jsonPath("$.address.state").value("SP"))
+                    .andExpect(jsonPath("$.stageStartedAt").isNotEmpty())
+                    .andExpect(jsonPath("$.stageDeadline").isNotEmpty())
+                    .andExpect(jsonPath("$.delayed").value(false))
                     .andExpect(jsonPath("$.createdBy").value("Operador"));
         }
 
@@ -299,6 +302,7 @@ class ApiIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value("ENTREGUE"))
                     .andExpect(jsonPath("$.allowedTransitions.length()").value(0))
+                    .andExpect(jsonPath("$.stageDeadline").doesNotExist())
                     .andExpect(jsonPath("$.history.length()").value(4))
                     .andExpect(jsonPath("$.history[3].from").value("SAIU_PARA_ENTREGA"))
                     .andExpect(jsonPath("$.history[3].to").value("ENTREGUE"));

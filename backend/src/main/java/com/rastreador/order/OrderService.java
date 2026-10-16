@@ -19,10 +19,12 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
+    private final SlaPolicy slaPolicy;
 
-    public OrderService(OrderRepository orderRepository, UserRepository userRepository) {
+    public OrderService(OrderRepository orderRepository, UserRepository userRepository, SlaPolicy slaPolicy) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
+        this.slaPolicy = slaPolicy;
     }
 
     @Transactional
@@ -45,7 +47,7 @@ public class OrderService {
                 items,
                 userReference(currentUser));
 
-        return OrderResponse.from(orderRepository.save(order));
+        return toResponse(orderRepository.save(order));
     }
 
     @Transactional(readOnly = true)
@@ -53,12 +55,12 @@ public class OrderService {
         List<Order> orders = status == null
                 ? orderRepository.findAllByOrderByCreatedAtDescIdDesc()
                 : orderRepository.findAllByStatusOrderByCreatedAtDescIdDesc(status);
-        return orders.stream().map(OrderResponse::from).toList();
+        return orders.stream().map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public OrderResponse findById(Long id) {
-        return OrderResponse.from(getOrder(id));
+        return toResponse(getOrder(id));
     }
 
     @Transactional
@@ -68,7 +70,11 @@ public class OrderService {
             throw new StaleOrderException(id);
         }
         order.changeStatus(next, userReference(currentUser));
-        return OrderResponse.from(orderRepository.saveAndFlush(order));
+        return toResponse(orderRepository.saveAndFlush(order));
+    }
+
+    private OrderResponse toResponse(Order order) {
+        return OrderResponse.from(order, slaPolicy.deadlineFor(order), slaPolicy.isDelayed(order));
     }
 
     private Order getOrder(Long id) {
