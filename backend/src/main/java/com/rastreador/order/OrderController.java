@@ -56,9 +56,10 @@ public class OrderController {
 
     @PatchMapping("/{id}/status")
     @Operation(summary = "Avança ou cancela o pedido",
-            description = "Responde 409 quando a transição não é permitida a partir do status atual.")
+            description = "Responde 409 quando a transição não é permitida a partir do status atual "
+                    + "ou quando a versão informada está desatualizada.")
     public OrderResponse updateStatus(@PathVariable Long id, @Valid @RequestBody UpdateStatusRequest request,
             @AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return orderService.updateStatus(id, request.status(), currentUser);
+        return orderService.updateStatus(id, request.status(), request.version(), currentUser);
     }
 }

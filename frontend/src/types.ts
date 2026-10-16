@@ -56,6 +56,8 @@ export interface Order {
   createdBy: string
   createdAt: string
   updatedAt: string
+  /** Versão do pedido; enviada ao mudar o status para detectar alterações concorrentes. */
+  version: number
 }
 
 export interface CreateOrderInput {

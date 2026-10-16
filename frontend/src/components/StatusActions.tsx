@@ -15,7 +15,7 @@ function useStatusChange(order: Order) {
   const toast = useToast()
 
   const change: ChangeStatus = (next, onDone) =>
-    mutation.mutate(next, {
+    mutation.mutate({ status: next, version: order.version }, {
       onSuccess: () => toast(`Pedido #${order.id} ${STATUS[next].done}`),
       onError: (error) => toast(error.message, 'error'),
       onSettled: onDone,

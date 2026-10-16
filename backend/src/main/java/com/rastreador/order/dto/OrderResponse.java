@@ -25,7 +25,8 @@ public record OrderResponse(
         List<HistoryResponse> history,
         String createdBy,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        long version) {
 
     public record CustomerResponse(String name, String phone) {
     }
@@ -54,7 +55,8 @@ public record OrderResponse(
                 order.getHistory().stream().map(OrderResponse::toHistory).toList(),
                 order.getCreatedBy().getName(),
                 order.getCreatedAt(),
-                order.getUpdatedAt());
+                order.getUpdatedAt(),
+                order.getVersion());
     }
 
     private static ItemResponse toItem(OrderItem item) {

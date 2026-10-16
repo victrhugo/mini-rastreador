@@ -26,6 +26,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.jayway.jsonpath.JsonPath;
+import com.rastreador.auth.AuthenticatedUser;
+import com.rastreador.auth.JwtService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -46,6 +48,9 @@ class ApiIntegrationTest {
 
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private JwtService jwtService;
 
     private static String uniqueEmail() {
         return "user-" + UUID.randomUUID() + "@teste.com";
@@ -135,6 +140,14 @@ class ApiIntegrationTest {
                     .andExpect(jsonPath("$.status").value(401));
 
             mvc.perform(get("/api/orders").header(HttpHeaders.AUTHORIZATION, "Bearer token-falso"))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void tokenOfUserThatNoLongerExistsIsRejected() throws Exception {
+            String token = jwtService.issue(new AuthenticatedUser(999_999L, "Fantasma", "x@teste.com")).token();
+
+            mvc.perform(get("/api/orders").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                     .andExpect(status().isUnauthorized());
         }
     }
@@ -266,6 +279,31 @@ class ApiIntegrationTest {
         void cannotSkipSteps() throws Exception {
             Integer id = createOrder();
             changeStatus(id, "ENTREGUE").andExpect(status().isConflict());
+        }
+
+        @Test
+        void staleVersionIsRejected() throws Exception {
+            Integer id = createOrder();
+
+            mvc.perform(patch("/api/orders/{id}/status", id)
+                            .header(HttpHeaders.AUTHORIZATION, bearer())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"status":"EM_PREPARO","version":0}"""))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.version").value(1));
+
+            // Outro operador ainda vê a versão 0 e tenta cancelar: o pedido mudou, então 409.
+            mvc.perform(patch("/api/orders/{id}/status", id)
+                            .header(HttpHeaders.AUTHORIZATION, bearer())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"status":"CANCELADO","version":0}"""))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.detail", containsString("alterado por outra pessoa")));
+
+            mvc.perform(get("/api/orders/{id}", id).header(HttpHeaders.AUTHORIZATION, bearer()))
+                    .andExpect(jsonPath("$.status").value("EM_PREPARO"));
         }
 
         @Test

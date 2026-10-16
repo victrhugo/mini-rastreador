@@ -40,13 +40,13 @@ export function useCreateOrder() {
 export function useUpdateOrderStatus(id: number) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (status: OrderStatus) =>
-      api<Order>(`/api/orders/${id}/status`, { method: 'PATCH', body: { status } }),
+    mutationFn: ({ status, version }: { status: OrderStatus; version: number }) =>
+      api<Order>(`/api/orders/${id}/status`, { method: 'PATCH', body: { status, version } }),
     onSuccess: (order) => {
       queryClient.setQueryData(orderKeys.detail(id), order)
       queryClient.invalidateQueries({ queryKey: orderKeys.all, exact: true })
     },
-    // Em 409 o pedido mudou em outro lugar: recarrega para mostrar o estado real.
-    onError: () => queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) }),
+    // Em 409 o pedido mudou em outro lugar: recarrega lista e detalhe para mostrar o estado real.
+    onError: () => queryClient.invalidateQueries({ queryKey: orderKeys.all }),
   })
 }

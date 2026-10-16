@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.rastreador.auth.AuthenticatedUser;
 import com.rastreador.common.NotFoundException;
+import com.rastreador.common.UnauthorizedException;
 import com.rastreador.order.dto.CreateOrderRequest;
 import com.rastreador.order.dto.OrderResponse;
 import com.rastreador.user.User;
@@ -59,8 +60,11 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse updateStatus(Long id, OrderStatus next, AuthenticatedUser currentUser) {
+    public OrderResponse updateStatus(Long id, OrderStatus next, Long expectedVersion, AuthenticatedUser currentUser) {
         Order order = getOrder(id);
+        if (expectedVersion != null && expectedVersion != order.getVersion()) {
+            throw new StaleOrderException(id);
+        }
         order.changeStatus(next, userReference(currentUser));
         return OrderResponse.from(orderRepository.saveAndFlush(order));
     }
@@ -72,7 +76,7 @@ public class OrderService {
 
     private User userReference(AuthenticatedUser currentUser) {
         return userRepository.findById(currentUser.id())
-                .orElseThrow(() -> new NotFoundException("Usuário autenticado não existe mais."));
+                .orElseThrow(() -> new UnauthorizedException("Sessão inválida. Entre novamente."));
     }
 
     private static String blankToNull(String value) {
