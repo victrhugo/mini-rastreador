@@ -134,6 +134,34 @@ class ApiIntegrationTest {
         }
 
         @Test
+        void disposableEmailIsRejectedOnTheEmailField() throws Exception {
+            register("alguem@mailinator.com", "segredo123")
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors.email").value("E-mails temporários não são aceitos."));
+        }
+
+        @Test
+        void loginIsLockedAfterTooManyWrongPasswords() throws Exception {
+            String email = uniqueEmail();
+            register(email, "segredo123").andExpect(status().isCreated());
+
+            for (int i = 0; i < 5; i++) {
+                mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"email":"%s","password":"errada"}""".formatted(email)))
+                        .andExpect(status().isUnauthorized());
+            }
+
+            // Mesmo com a senha certa, o login fica bloqueado por um tempo.
+            mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email":"%s","password":"segredo123"}""".formatted(email)))
+                    .andExpect(status().isTooManyRequests())
+                    .andExpect(header().exists(HttpHeaders.RETRY_AFTER))
+                    .andExpect(jsonPath("$.detail", containsString("Tente novamente em 15 minutos")));
+        }
+
+        @Test
         void ordersRequireAuthentication() throws Exception {
             mvc.perform(get("/api/orders"))
                     .andExpect(status().isUnauthorized())
@@ -217,6 +245,16 @@ class ApiIntegrationTest {
                     .andExpect(jsonPath("$.errors['address.zipCode']").exists())
                     .andExpect(jsonPath("$.errors['address.state']").exists())
                     .andExpect(jsonPath("$.errors.items").exists());
+        }
+
+        @Test
+        void phoneWithUnknownAreaCodeIsRejected() throws Exception {
+            mvc.perform(post("/api/orders")
+                            .header(HttpHeaders.AUTHORIZATION, bearer())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(ORDER_JSON.replace("11999990000", "20999990000")))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors['customer.phone']").value("DDD 20 não existe"));
         }
 
         @Test

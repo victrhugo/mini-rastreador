@@ -2,3 +2,8 @@ spring:
   datasource:
     # Banco em memória: vive enquanto o pool mantiver a conexão aberta (o contexto de teste).
     url: jdbc:sqlite:file:rastreador-test?mode=memory&cache=shared&foreign_keys=on
+
+app:
+  email:
+    # Testes rodam sem rede: a verificação de DNS é testada à parte, com um verificador falso.
+    check-domain: false

@@ -45,6 +45,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "O registro foi alterado por outra pessoa. Atualize a tela e tente novamente.");
     }
 
+    @ExceptionHandler(FieldValidationException.class)
+    ProblemDetail handleFieldValidation(FieldValidationException ex) {
+        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "Dados inválidos",
+                "Um ou mais campos estão inválidos.");
+        problem.setProperty("errors", Map.of(ex.getField(), ex.getMessage()));
+        return problem;
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    ResponseEntity<ProblemDetail> handleTooManyRequests(TooManyRequestsException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, ex.getRetryAfter().toSeconds())))
+                .body(problem(HttpStatus.TOO_MANY_REQUESTS, "Muitas tentativas", ex.getMessage()));
+    }
+
     @ExceptionHandler(BadRequestException.class)
     ProblemDetail handleBadRequest(BadRequestException ex) {
         return problem(HttpStatus.BAD_REQUEST, "Requisição inválida", ex.getMessage());

@@ -3,6 +3,8 @@ package com.rastreador.order.dto;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.rastreador.common.validation.BrazilianPhone;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -32,7 +34,8 @@ public record CreateOrderRequest(
             @Size(max = 120, message = "Nome deve ter no máximo 120 caracteres")
             String name,
 
-            @Pattern(regexp = "^\\+?[0-9 ()-]{8,20}$", message = "Telefone inválido")
+            @BrazilianPhone
+            @Size(max = 20, message = "Telefone deve ter no máximo 20 caracteres")
             String phone) {
     }
 

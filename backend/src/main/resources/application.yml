@@ -26,6 +26,8 @@ spring:
 
 server:
   port: ${PORT:8080}
+  # Atrás do nginx (Docker), usa o IP real do cliente (X-Forwarded-For) no limite de login.
+  forward-headers-strategy: native
 
 app:
   jwt:
@@ -34,6 +36,13 @@ app:
     expiration: ${JWT_EXPIRATION:2h}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  email:
+    # Confere no DNS se o domínio do e-mail recebe mensagens (sem API externa).
+    check-domain: ${EMAIL_CHECK_DOMAIN:true}
+    dns-timeout: 2s
+  login:
+    max-attempts: 5
+    lock-duration: 15m
   cep:
     # ViaCEP é a fonte principal; a BrasilAPI só é usada se a ViaCEP falhar ou demorar.
     via-cep-url: ${VIACEP_URL:https://viacep.com.br/ws}

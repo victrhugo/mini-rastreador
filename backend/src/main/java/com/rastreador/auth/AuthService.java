@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.rastreador.auth.dto.AuthResponse;
 import com.rastreador.auth.dto.LoginRequest;
 import com.rastreador.auth.dto.RegisterRequest;
+import com.rastreador.auth.email.EmailPolicy;
 import com.rastreador.common.ConflictException;
 import com.rastreador.common.UnauthorizedException;
 import com.rastreador.user.User;
@@ -20,11 +21,16 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmailPolicy emailPolicy;
+    private final LoginAttemptService loginAttempts;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
+            EmailPolicy emailPolicy, LoginAttemptService loginAttempts) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.emailPolicy = emailPolicy;
+        this.loginAttempts = loginAttempts;
     }
 
     @Transactional
@@ -33,18 +39,32 @@ public class AuthService {
         if (userRepository.existsByEmail(email)) {
             throw new ConflictException("E-mail já cadastrado.");
         }
+        emailPolicy.validate(email);
 
         User user = userRepository.save(
                 new User(request.name().trim(), email, passwordEncoder.encode(request.password())));
         return authenticate(user);
     }
 
+    /**
+     * @param clientIp IP de origem, usado junto com o e-mail no limite de tentativas
+     */
     @Transactional(readOnly = true)
-    public AuthResponse login(LoginRequest request) {
+    public AuthResponse login(LoginRequest request, String clientIp) {
+        String email = normalizeEmail(request.email());
+        String attemptKey = email + "|" + clientIp;
+        loginAttempts.checkAllowed(attemptKey);
+
         // Mesma mensagem para e-mail inexistente e senha errada: não revela quais e-mails existem.
-        User user = userRepository.findByEmail(normalizeEmail(request.email()))
+        User user = userRepository.findByEmail(email)
                 .filter(found -> passwordEncoder.matches(request.password(), found.getPasswordHash()))
-                .orElseThrow(() -> new UnauthorizedException("E-mail ou senha inválidos."));
+                .orElse(null);
+        if (user == null) {
+            loginAttempts.recordFailure(attemptKey);
+            throw new UnauthorizedException("E-mail ou senha inválidos.");
+        }
+
+        loginAttempts.recordSuccess(attemptKey);
         return authenticate(user);
     }
 
