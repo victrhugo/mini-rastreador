@@ -6,8 +6,16 @@ export interface ItemDraft {
   unitPrice: string
 }
 
+let sequence = 0
+
+/**
+ * Chave estável da linha. Contador + sufixo aleatório: único mesmo depois de hot reload
+ * e sem depender de crypto.randomUUID, que só existe em HTTPS ou localhost.
+ */
+const newKey = () => `item-${++sequence}-${Math.random().toString(36).slice(2, 8)}`
+
 export const newItem = (): ItemDraft => ({
-  key: crypto.randomUUID(),
+  key: newKey(),
   description: '',
   quantity: '1',
   unitPrice: '',

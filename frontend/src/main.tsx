@@ -4,12 +4,17 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import App from './App'
+import { ApiError } from './api/client'
 import { ToastProvider } from './components/Toast'
 import './index.css'
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, refetchOnWindowFocus: true },
+    // Erros 4xx (404, 401, 409...) não melhoram com nova tentativa; só rede e 5xx tentam de novo.
+    queries: {
+      retry: (count, error) => !(error instanceof ApiError && error.status >= 400 && error.status < 500) && count < 1,
+      refetchOnWindowFocus: true,
+    },
   },
 })
 

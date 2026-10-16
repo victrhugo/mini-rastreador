@@ -7,7 +7,7 @@ import { Alert, Button, Field } from '../components/ui'
 import { AuthLayout } from './AuthLayout'
 
 export function LoginPage() {
-  const { login } = useAuth()
+  const { login, logoutReason } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -39,6 +39,11 @@ export function LoginPage() {
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <Alert>{error}</Alert>}
+        {!error && logoutReason === 'expired' && (
+          <p role="status" className="rounded-lg bg-surface-2 px-3.5 py-3 text-sm text-ink-2">
+            Sua sessão expirou. Entre de novo para continuar de onde parou.
+          </p>
+        )}
         <Field
           label="E-mail"
           name="email"

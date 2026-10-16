@@ -1,15 +1,25 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { useAuth } from './AuthContext'
 
-/** Redireciona para o login quando não há usuário autenticado. */
+/**
+ * Redireciona para o login quando não há usuário autenticado. A página atual só é
+ * lembrada se a sessão expirou: depois de sair pelo botão, o próximo login (talvez de
+ * outra pessoa) começa na lista de pedidos.
+ */
 export function ProtectedRoute() {
-  const { user } = useAuth()
+  const { user, logoutReason } = useAuth()
   const location = useLocation()
 
   if (!user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    const from = logoutReason === 'manual' ? undefined : location.pathname + location.search
+    return <Navigate to="/login" replace state={from ? { from } : undefined} />
   }
   return <Outlet />
+}
+
+/** Aceita só caminhos internos do app (evita redirecionar para outro site). */
+function safeRedirect(from: unknown) {
+  return typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : '/orders'
 }
 
 /**
@@ -21,8 +31,7 @@ export function GuestRoute() {
   const location = useLocation()
 
   if (user) {
-    const from = (location.state as { from?: string } | null)?.from ?? '/orders'
-    return <Navigate to={from} replace />
+    return <Navigate to={safeRedirect((location.state as { from?: unknown } | null)?.from)} replace />
   }
   return <Outlet />
 }

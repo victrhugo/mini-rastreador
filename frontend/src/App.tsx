@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router'
 import { AuthProvider } from './auth/AuthContext'
 import { GuestRoute, ProtectedRoute } from './auth/ProtectedRoute'
 import { AppLayout } from './components/AppLayout'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 // Cada página vira um arquivo separado no build e só é baixada quando acessada.
 const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })))
@@ -14,6 +15,7 @@ const TrackingPage = lazy(() => import('./pages/TrackingPage').then((m) => ({ de
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <AuthProvider>
       <Suspense fallback={<div className="min-h-[100dvh]" aria-busy="true" />}>
         <Routes>
@@ -34,5 +36,6 @@ export default function App() {
         </Routes>
       </Suspense>
     </AuthProvider>
+    </ErrorBoundary>
   )
 }

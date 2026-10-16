@@ -73,6 +73,8 @@ export function ItemsEditor({ items, onChange, errorFor }: Props) {
                     </button>
                     <input
                       id={`items[${index}].quantity`}
+                      aria-invalid={errorFor(`items[${index}].quantity`) ? true : undefined}
+                      aria-describedby={errorFor(`items[${index}].quantity`) ? `items[${index}].quantity-error` : undefined}
                       inputMode="numeric"
                       value={item.quantity}
                       onChange={(e) => update(item.key, { quantity: e.target.value.replace(/\D/g, '').slice(0, 3) })}
@@ -88,7 +90,9 @@ export function ItemsEditor({ items, onChange, errorFor }: Props) {
                     </button>
                   </div>
                   {errorFor(`items[${index}].quantity`) && (
-                    <p className="text-xs text-danger">{errorFor(`items[${index}].quantity`)}</p>
+                    <p id={`items[${index}].quantity-error`} className="text-xs text-danger">
+                      {errorFor(`items[${index}].quantity`)}
+                    </p>
                   )}
                 </div>
                 <Field

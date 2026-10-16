@@ -65,6 +65,7 @@ export function NewOrderPage() {
   const errorFor = (path: string) => (edited.has(path) ? undefined : apiError?.fieldErrors[path])
   const markEdited = (path: string) => setEdited((prev) => (prev.has(path) ? prev : new Set(prev).add(path)))
 
+  const formRef = useRef<HTMLFormElement>(null)
   const streetRef = useRef<HTMLInputElement>(null)
   const numberRef = useRef<HTMLInputElement>(null)
 
@@ -80,7 +81,10 @@ export function NewOrderPage() {
     ;['address.street', 'address.district', 'address.city', 'address.state'].forEach((path) =>
       setEdited((prev) => (prev.has(path) ? prev : new Set(prev).add(path))),
     )
-    ;(address.street ? numberRef : streetRef).current?.focus()
+    // Só move o foco se o usuário ainda estiver no CEP (não atrapalha quem já seguiu adiante).
+    if (document.activeElement?.id === 'address.zipCode') {
+      ;(address.street ? numberRef : streetRef).current?.focus()
+    }
   }, [])
 
   const zipLookup = useZipCodeLookup(form.zipCode, fillAddress)
@@ -142,13 +146,24 @@ export function NewOrderPage() {
         toast(`Pedido #${order.id} criado`)
         navigate(`/orders/${order.id}`, { replace: true })
       },
+      // No mobile o botão fica no fim da página: leva o usuário ao primeiro campo com erro.
+      onError: () =>
+        requestAnimationFrame(() => {
+          const invalid = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')
+          if (invalid) {
+            invalid.focus()
+            invalid.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          } else {
+            formRef.current?.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          }
+        }),
     })
   }
 
   const fieldErrorCount = apiError ? Object.keys(apiError.fieldErrors).length : 0
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
+    <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-6">
       <header>
         <Link to="/orders" className="inline-flex items-center gap-1.5 text-sm text-ink-2 transition-colors hover:text-ink">
           <ArrowLeftIcon className="size-4" />

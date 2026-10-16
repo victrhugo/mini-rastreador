@@ -1,11 +1,11 @@
 import type { AuthResponse } from '../types'
 
-const STORAGE_KEY = 'rastreador.session'
+export const SESSION_KEY = 'rastreador.session'
 
 /** Lê a sessão salva; descarta se estiver corrompida ou expirada. */
 export function loadSession(): AuthResponse | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(SESSION_KEY)
     if (!raw) return null
     const session = JSON.parse(raw) as AuthResponse
     if (new Date(session.expiresAt).getTime() <= Date.now()) {
@@ -20,7 +20,7 @@ export function loadSession(): AuthResponse | null {
 
 export function saveSession(session: AuthResponse) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
   } catch {
     // Armazenamento indisponível (aba anônima, por exemplo): a sessão vale só em memória.
   }
@@ -28,7 +28,7 @@ export function saveSession(session: AuthResponse) {
 
 export function clearSession() {
   try {
-    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(SESSION_KEY)
   } catch {
     // ignora
   }

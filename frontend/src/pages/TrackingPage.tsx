@@ -1,6 +1,6 @@
 import { MapPinIcon, ReceiptIcon } from '@phosphor-icons/react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router'
 import { API_URL, ApiError } from '../api/client'
 import { trackingKey, usePublicTracking } from '../api/tracking'
@@ -132,21 +132,42 @@ function Tracking({ tracking, updatedAt, fetching, live }: {
 }
 
 /**
- * Escuta as mudanças do pedido em tempo real. A rota é pública, então dá para usar o
- * EventSource nativo, que reconecta sozinho se a conexão cair.
+ * Escuta as mudanças do pedido em tempo real com o EventSource nativo (a rota é pública).
+ * Ele reconecta sozinho em quedas de rede, mas desiste se receber um status diferente
+ * de 200 (ex.: 502 enquanto a API reinicia); nesse caso abrimos uma nova conexão com espera.
  */
 function useTrackingEvents(code: string, enabled: boolean) {
   const queryClient = useQueryClient()
   const [live, setLive] = useState(false)
+  // `attempt` só serve para recriar a conexão; `failures` controla a espera entre tentativas.
+  const [attempt, setAttempt] = useState(0)
+  const failures = useRef(0)
 
   useEffect(() => {
     if (!enabled) return
+    const refresh = () => queryClient.invalidateQueries({ queryKey: trackingKey(code) })
     const source = new EventSource(`${API_URL}/api/public/tracking/${encodeURIComponent(code)}/stream`)
-    source.addEventListener('ready', () => setLive(true))
-    source.addEventListener('order', () => queryClient.invalidateQueries({ queryKey: trackingKey(code) }))
-    source.onerror = () => setLive(false)
-    return () => source.close()
-  }, [code, enabled, queryClient])
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+
+    source.addEventListener('ready', () => {
+      failures.current = 0
+      setLive(true)
+      refresh() // recupera mudanças feitas enquanto a conexão estava fora
+    })
+    source.addEventListener('order', refresh)
+    source.onerror = () => {
+      setLive(false)
+      if (source.readyState === EventSource.CLOSED) {
+        const delay = Math.min(15_000, 1_000 * 2 ** failures.current++)
+        retryTimer = setTimeout(() => setAttempt((n) => n + 1), delay)
+      }
+    }
+
+    return () => {
+      clearTimeout(retryTimer)
+      source.close()
+    }
+  }, [code, enabled, queryClient, attempt])
 
   return live
 }

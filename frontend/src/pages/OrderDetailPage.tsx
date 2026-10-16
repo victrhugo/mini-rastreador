@@ -26,7 +26,9 @@ import { STATUS } from '../status'
 import type { Order } from '../types'
 
 export function OrderDetailPage() {
-  const id = Number(useParams().id)
+  const rawId = useParams().id ?? ''
+  const id = Number(rawId)
+  const validId = Number.isInteger(id) && id > 0
   const { data: order, isPending, isError, error, dataUpdatedAt, isFetching } = useOrder(id)
 
   return (
@@ -36,7 +38,9 @@ export function OrderDetailPage() {
         Pedidos
       </Link>
 
-      {isPending && <DetailSkeleton />}
+      {!validId && <NotFound id={rawId} />}
+
+      {validId && isPending && <DetailSkeleton />}
 
       {isError &&
         (error instanceof ApiError && error.status === 404 ? (
@@ -195,7 +199,7 @@ function Section({ title, aside, children }: { title: string; aside?: ReactNode;
   )
 }
 
-function NotFound({ id }: { id: number }) {
+function NotFound({ id }: { id: number | string }) {
   return (
     <Card className="flex flex-col items-center px-6 py-16 text-center">
       <span className="flex size-12 items-center justify-center rounded-xl bg-surface-2 text-ink-3">

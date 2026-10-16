@@ -25,6 +25,7 @@ export function useOrder(id: number) {
   return useQuery({
     queryKey: orderKeys.detail(id),
     queryFn: () => api<Order>(`/api/orders/${id}`),
+    enabled: Number.isInteger(id) && id > 0,
     refetchInterval: FALLBACK_REFRESH_MS,
   })
 }

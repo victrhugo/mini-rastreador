@@ -1,4 +1,4 @@
-import { API_URL, ApiError, notifyUnauthorized } from './client'
+import { API_URL, ApiError, getAuthToken, notifyUnauthorized } from './client'
 
 export interface SseMessage {
   event: string
@@ -45,7 +45,8 @@ export async function readEventStream(
   })
 
   if (response.status === 401) {
-    notifyUnauthorized()
+    // Só encerra a sessão se o token recusado ainda for o atual.
+    if (options.token && options.token === getAuthToken()) notifyUnauthorized()
     throw new ApiError(401, 'Sessão expirada.')
   }
   if (!response.ok || !response.body) {

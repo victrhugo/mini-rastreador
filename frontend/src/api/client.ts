@@ -43,6 +43,8 @@ export async function api<T>(
   if (options.body !== undefined) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
 
+  // Token usado nesta requisição: um 401 de uma sessão anterior não deve derrubar a atual.
+  const sentToken = token
   let response: Response
   try {
     response = await fetch(`${API_URL}${path}`, {
@@ -56,7 +58,7 @@ export async function api<T>(
     throw new ApiError(0, 'Não foi possível conectar à API. Verifique se o back-end está rodando.')
   }
 
-  if (response.status === 401 && token) {
+  if (response.status === 401 && sentToken && sentToken === token) {
     onUnauthorized()
   }
 

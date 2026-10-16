@@ -102,11 +102,11 @@ export function OrdersPage() {
         {view === 'list' ? (
           <div
             className="-ml-4 flex min-w-0 gap-1.5 overflow-x-auto py-1 pl-4 [scrollbar-width:none] lg:ml-0 lg:pl-0"
-            role="tablist"
+            role="group"
             aria-label="Filtrar por status"
           >
             <FilterChip active={filter === 'TODOS'} onClick={() => setFilter('TODOS')} label="Todos" count={searched.length} />
-            {delayed.length > 0 && (
+            {(delayed.length > 0 || filter === 'ATRASADOS') && (
               <FilterChip
                 alert
                 active={filter === 'ATRASADOS'}
@@ -377,8 +377,7 @@ function FilterChip({ active, label, count, status, alert, onClick }: {
 }) {
   return (
     <button
-      role="tab"
-      aria-selected={active}
+      aria-pressed={active}
       onClick={onClick}
       className={`flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm transition-colors ${
         active

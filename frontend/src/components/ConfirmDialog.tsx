@@ -35,12 +35,12 @@ export function ConfirmDialog({ open, title, children, confirmLabel, cancelLabel
         <div className="mt-1.5 text-sm text-ink-2">{children}</div>
       </div>
       <div className="flex justify-end gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
-        <Button variant="ghost" onClick={onClose}>{cancelLabel}</Button>
+        {/* Foco inicial na opção segura: Enter por reflexo não executa a ação destrutiva. */}
+        <Button variant="ghost" onClick={onClose} autoFocus>{cancelLabel}</Button>
         <Button
           variant="destructive"
           loading={loading}
           onClick={onConfirm}
-          autoFocus
         >
           {confirmLabel}
         </Button>
