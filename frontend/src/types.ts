@@ -75,6 +75,25 @@ export interface Order {
   stageDeadline: string | null
   /** Se já estava atrasado quando a API respondeu (o front recalcula com o relógio). */
   delayed: boolean
+  /** Código do link público de rastreio (/rastreio/{codigo}). */
+  trackingCode: string
+}
+
+/** Resposta pública de GET /api/public/tracking/{code}: sem dados pessoais. */
+export interface PublicTracking {
+  orderNumber: number
+  status: OrderStatus
+  customerFirstName: string
+  district: string
+  city: string
+  state: string | null
+  items: { description: string; quantity: number }[]
+  total: number
+  history: { status: OrderStatus; at: string }[]
+  stageStartedAt: string
+  stageDeadline: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface CreateOrderInput {

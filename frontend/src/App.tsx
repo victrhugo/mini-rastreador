@@ -10,6 +10,7 @@ const RegisterPage = lazy(() => import('./pages/RegisterPage').then((m) => ({ de
 const OrdersPage = lazy(() => import('./pages/OrdersPage').then((m) => ({ default: m.OrdersPage })))
 const NewOrderPage = lazy(() => import('./pages/NewOrderPage').then((m) => ({ default: m.NewOrderPage })))
 const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage').then((m) => ({ default: m.OrderDetailPage })))
+const TrackingPage = lazy(() => import('./pages/TrackingPage').then((m) => ({ default: m.TrackingPage })))
 
 export default function App() {
   return (
@@ -27,6 +28,8 @@ export default function App() {
               <Route path="/orders/:id" element={<OrderDetailPage />} />
             </Route>
           </Route>
+          {/* Página pública do cliente: acessível com ou sem login. */}
+          <Route path="/rastreio/:code" element={<TrackingPage />} />
           <Route path="*" element={<Navigate to="/orders" replace />} />
         </Routes>
       </Suspense>

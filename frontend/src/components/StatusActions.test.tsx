@@ -23,6 +23,7 @@ function makeOrder(status: OrderStatus, allowedTransitions: OrderStatus[]): Orde
     stageStartedAt: '2026-10-16T12:00:00Z',
     stageDeadline: null,
     delayed: false,
+    trackingCode: 'abc123',
   }
 }
 

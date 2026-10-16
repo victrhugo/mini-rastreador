@@ -16,6 +16,7 @@ import { StatusActions } from '../components/StatusActions'
 import { StatusBadge } from '../components/StatusBadge'
 import { StatusStepper } from '../components/StatusStepper'
 import { StatusTimeline } from '../components/StatusTimeline'
+import { TrackingLink } from '../components/TrackingLink'
 import { Alert, Avatar, buttonClass, Card, Skeleton } from '../components/ui'
 import { formatDateTime, formatMoney, formatRelative } from '../format'
 import { useNow } from '../hooks/useNow'
@@ -165,6 +166,10 @@ function OrderDetail({ order, updatedAt, fetching }: { order: Order; updatedAt: 
               Abrir no mapa
               <ArrowSquareOutIcon className="size-3.5" />
             </a>
+          </Section>
+
+          <Section title="Link de rastreio">
+            <TrackingLink code={order.trackingCode} />
           </Section>
 
           <Section title="Histórico">
