@@ -12,6 +12,7 @@ import { Link, useParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { useOrder } from '../api/orders'
 import { LiveIndicator } from '../components/LiveIndicator'
+import { useLiveStatus } from '../live'
 import { StatusActions } from '../components/StatusActions'
 import { StatusBadge } from '../components/StatusBadge'
 import { StatusStepper } from '../components/StatusStepper'
@@ -50,6 +51,7 @@ export function OrderDetailPage() {
 }
 
 function OrderDetail({ order, updatedAt, fetching }: { order: Order; updatedAt: number; fetching: boolean }) {
+  const liveStatus = useLiveStatus()
   const { Icon, label, description } = STATUS[order.status]
   const cancelled = order.status === 'CANCELADO'
   const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0)
@@ -71,7 +73,7 @@ function OrderDetail({ order, updatedAt, fetching }: { order: Order; updatedAt: 
             Criado {formatRelative(order.createdAt)} por {order.createdBy}, em {formatDateTime(order.createdAt)}
           </p>
         </div>
-        <LiveIndicator updatedAt={updatedAt} fetching={fetching} />
+        <LiveIndicator updatedAt={updatedAt} fetching={fetching} live={liveStatus === 'live'} />
       </header>
 
       <Card className="overflow-hidden">

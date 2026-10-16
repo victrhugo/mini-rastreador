@@ -24,6 +24,17 @@ export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler
 }
 
+export function getAuthToken() {
+  return token
+}
+
+/** Para chamadas feitas fora de api() (ex.: stream de eventos) que recebem 401. */
+export function notifyUnauthorized() {
+  onUnauthorized()
+}
+
+export { API_URL }
+
 export async function api<T>(
   path: string,
   options: { method?: string; body?: unknown; signal?: AbortSignal } = {},

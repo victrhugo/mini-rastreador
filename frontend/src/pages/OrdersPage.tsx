@@ -16,6 +16,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { useOrders } from '../api/orders'
 import { LiveIndicator } from '../components/LiveIndicator'
+import { useLiveStatus } from '../live'
 import { QuickActions } from '../components/StatusActions'
 import { StatusBadge } from '../components/StatusBadge'
 import { StageTimer } from '../components/StageTimer'
@@ -42,6 +43,7 @@ function readView(): View {
 
 export function OrdersPage() {
   const { data: orders, isPending, isError, error, dataUpdatedAt, isFetching } = useOrders()
+  const liveStatus = useLiveStatus()
   const [filter, setFilter] = useState<Filter>('TODOS')
   const [query, setQuery] = useState('')
   const [view, setViewState] = useState<View>(readView)
@@ -68,7 +70,7 @@ export function OrdersPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-[28px]">Pedidos</h1>
           <div className="mt-1.5 h-4">
-            {orders && <LiveIndicator updatedAt={dataUpdatedAt} fetching={isFetching} />}
+            {orders && <LiveIndicator updatedAt={dataUpdatedAt} fetching={isFetching} live={liveStatus === 'live'} />}
           </div>
         </div>
         <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">

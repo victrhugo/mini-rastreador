@@ -1,7 +1,9 @@
 import { MapPinIcon, ReceiptIcon } from '@phosphor-icons/react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
-import { ApiError } from '../api/client'
-import { usePublicTracking } from '../api/tracking'
+import { API_URL, ApiError } from '../api/client'
+import { trackingKey, usePublicTracking } from '../api/tracking'
 import { LiveIndicator } from '../components/LiveIndicator'
 import { Logo } from '../components/Logo'
 import { StatusStepper } from '../components/StatusStepper'
@@ -23,6 +25,7 @@ const CUSTOMER_MESSAGE: Record<OrderStatus, { title: string; text: string }> = {
 export function TrackingPage() {
   const code = useParams().code ?? ''
   const { data, isPending, isError, error, dataUpdatedAt, isFetching } = usePublicTracking(code)
+  const live = useTrackingEvents(code, Boolean(data))
 
   return (
     <div className="min-h-[100dvh]">
@@ -47,13 +50,18 @@ export function TrackingPage() {
             <Alert>{error.message}</Alert>
           ))}
 
-        {data && <Tracking tracking={data} updatedAt={dataUpdatedAt} fetching={isFetching} />}
+        {data && <Tracking tracking={data} updatedAt={dataUpdatedAt} fetching={isFetching} live={live} />}
       </main>
     </div>
   )
 }
 
-function Tracking({ tracking, updatedAt, fetching }: { tracking: PublicTracking; updatedAt: number; fetching: boolean }) {
+function Tracking({ tracking, updatedAt, fetching, live }: {
+  tracking: PublicTracking
+  updatedAt: number
+  fetching: boolean
+  live: boolean
+}) {
   const { Icon } = STATUS[tracking.status]
   const message = CUSTOMER_MESSAGE[tracking.status]
   const itemCount = tracking.items.reduce((sum, item) => sum + item.quantity, 0)
@@ -116,11 +124,31 @@ function Tracking({ tracking, updatedAt, fetching }: { tracking: PublicTracking;
       </Card>
 
       <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-ink-3">
-        <LiveIndicator updatedAt={updatedAt} fetching={fetching} />
+        <LiveIndicator updatedAt={updatedAt} fetching={fetching} live={live} />
         <span>Pedido feito às {formatTime(tracking.createdAt)}</span>
       </div>
     </>
   )
+}
+
+/**
+ * Escuta as mudanças do pedido em tempo real. A rota é pública, então dá para usar o
+ * EventSource nativo, que reconecta sozinho se a conexão cair.
+ */
+function useTrackingEvents(code: string, enabled: boolean) {
+  const queryClient = useQueryClient()
+  const [live, setLive] = useState(false)
+
+  useEffect(() => {
+    if (!enabled) return
+    const source = new EventSource(`${API_URL}/api/public/tracking/${encodeURIComponent(code)}/stream`)
+    source.addEventListener('ready', () => setLive(true))
+    source.addEventListener('order', () => queryClient.invalidateQueries({ queryKey: trackingKey(code) }))
+    source.onerror = () => setLive(false)
+    return () => source.close()
+  }, [code, enabled, queryClient])
+
+  return live
 }
 
 function TrackingSkeleton() {

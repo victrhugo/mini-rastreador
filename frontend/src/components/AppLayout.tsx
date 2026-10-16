@@ -3,6 +3,7 @@ import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
+import { useOrderEvents } from '../hooks/useOrderEvents'
 import { Logo } from './Logo'
 import { ThemeToggle } from './ThemeToggle'
 import { Avatar } from './ui'
@@ -10,6 +11,7 @@ import { Avatar } from './ui'
 export function AppLayout() {
   const { user, logout } = useAuth()
   const location = useLocation()
+  useOrderEvents()
 
   return (
     <div className="min-h-[100dvh] lg:grid lg:grid-cols-[252px_minmax(0,1fr)]">

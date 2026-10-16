@@ -2,8 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { CreateOrderInput, Order, OrderStatus } from '../types'
 import { api } from './client'
 
-/** Intervalo de atualização automática: dá a sensação de rastreamento ao vivo. */
-const LIVE_REFRESH_MS = 5_000
+/**
+ * Reserva caso a conexão em tempo real (SSE) caia: a tela ainda se atualiza sozinha.
+ * Com o stream ativo, as mudanças chegam na hora (veja useOrderEvents).
+ */
+const FALLBACK_REFRESH_MS = 30_000
 
 export const orderKeys = {
   all: ['orders'] as const,
@@ -14,7 +17,7 @@ export function useOrders() {
   return useQuery({
     queryKey: orderKeys.all,
     queryFn: () => api<Order[]>('/api/orders'),
-    refetchInterval: LIVE_REFRESH_MS,
+    refetchInterval: FALLBACK_REFRESH_MS,
   })
 }
 
@@ -22,7 +25,7 @@ export function useOrder(id: number) {
   return useQuery({
     queryKey: orderKeys.detail(id),
     queryFn: () => api<Order>(`/api/orders/${id}`),
-    refetchInterval: LIVE_REFRESH_MS,
+    refetchInterval: FALLBACK_REFRESH_MS,
   })
 }
 
