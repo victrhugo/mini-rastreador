@@ -1,4 +1,4 @@
-import { ArrowRightIcon } from '@phosphor-icons/react'
+import { ArrowRightIcon, XCircleIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useUpdateOrderStatus } from '../api/orders'
 import { nextStep, STATUS } from '../status'
@@ -7,12 +7,14 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { useToast } from './Toast'
 import { Button } from './ui'
 
+type ChangeStatus = (next: OrderStatus, onDone?: () => void) => void
+
 /** Muda o status e avisa o resultado com um toast. */
 function useStatusChange(order: Order) {
   const mutation = useUpdateOrderStatus(order.id)
   const toast = useToast()
 
-  const change = (next: OrderStatus, onDone?: () => void) =>
+  const change: ChangeStatus = (next, onDone) =>
     mutation.mutate(next, {
       onSuccess: () => toast(`Pedido #${order.id} ${STATUS[next].done}`),
       onError: (error) => toast(error.message, 'error'),
@@ -28,7 +30,6 @@ function useStatusChange(order: Order) {
  */
 export function StatusActions({ order }: { order: Order }) {
   const { change, pending } = useStatusChange(order)
-  const [confirmCancel, setConfirmCancel] = useState(false)
   const next = nextStep(order.allowedTransitions)
   const canCancel = order.allowedTransitions.includes('CANCELADO')
 
@@ -36,34 +37,69 @@ export function StatusActions({ order }: { order: Order }) {
 
   return (
     <div className="flex w-full items-center gap-2 sm:w-auto [&>button]:flex-1 sm:[&>button]:flex-none">
-      {canCancel && (
-        <Button variant="danger" disabled={pending} onClick={() => setConfirmCancel(true)}>
-          Cancelar
-        </Button>
-      )}
-      {next && (
-        <NextStepButton status={next} loading={pending} onClick={() => change(next)} size="md" />
-      )}
-      <ConfirmDialog
-        open={confirmCancel}
-        title={`Cancelar o pedido #${order.id}?`}
-        confirmLabel="Cancelar pedido"
-        loading={pending}
-        onClose={() => setConfirmCancel(false)}
-        onConfirm={() => change('CANCELADO', () => setConfirmCancel(false))}
-      >
-        O cliente {order.customer.name} não vai receber este pedido. Essa ação não pode ser desfeita.
-      </ConfirmDialog>
+      {canCancel && <CancelOrder order={order} change={change} pending={pending} />}
+      {next && <NextStepButton status={next} loading={pending} onClick={() => change(next)} size="md" />}
     </div>
   )
 }
 
-/** Atalho para avançar o pedido direto da lista ou do quadro. */
-export function QuickAdvance({ order }: { order: Order }) {
+/** Versão compacta para a lista e o quadro: avançar etapa e cancelar. */
+export function QuickActions({ order }: { order: Order }) {
   const { change, pending } = useStatusChange(order)
   const next = nextStep(order.allowedTransitions)
-  if (!next) return null
-  return <NextStepButton status={next} loading={pending} onClick={() => change(next)} size="sm" />
+  const canCancel = order.allowedTransitions.includes('CANCELADO')
+
+  if (!next && !canCancel) return null
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {canCancel && <CancelOrder order={order} change={change} pending={pending} compact />}
+      {next && <NextStepButton status={next} loading={pending} onClick={() => change(next)} size="sm" />}
+    </div>
+  )
+}
+
+function CancelOrder({ order, change, pending, compact }: {
+  order: Order
+  change: ChangeStatus
+  pending: boolean
+  compact?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      {compact ? (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={(event) => {
+            event.stopPropagation()
+            setOpen(true)
+          }}
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-3 transition-colors hover:bg-danger-soft hover:text-danger disabled:opacity-50"
+          aria-label={`Cancelar pedido #${order.id}`}
+          title="Cancelar pedido"
+        >
+          <XCircleIcon className="size-[18px]" />
+        </button>
+      ) : (
+        <Button variant="danger" disabled={pending} onClick={() => setOpen(true)}>
+          Cancelar
+        </Button>
+      )}
+      <ConfirmDialog
+        open={open}
+        title={`Cancelar o pedido #${order.id}?`}
+        confirmLabel="Cancelar pedido"
+        loading={pending}
+        onClose={() => setOpen(false)}
+        onConfirm={() => change('CANCELADO', () => setOpen(false))}
+      >
+        O pedido de {order.customer.name} não será entregue. Essa ação não pode ser desfeita.
+      </ConfirmDialog>
+    </>
+  )
 }
 
 function NextStepButton({ status, loading, onClick, size }: {
