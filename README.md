@@ -6,12 +6,20 @@ autenticado cadastra pedidos e acompanha cada um pelas etapas, do recebimento à
 - **Back-end:** Java 21, Spring Boot 4, Spring Security (JWT), Spring Data JPA, Flyway, SQLite
 - **Front-end:** React 19, TypeScript, Vite, TanStack Query, React Router, Tailwind CSS v4, Motion, Phosphor Icons
 
-### Interface
+### Funcionalidades
 
-- Painel com indicadores do dia (em andamento, em rota, entregues e vendas), busca e filtro por status
-- Duas visões: **lista** e **quadro** por etapa, com botões para avançar ou cancelar o pedido direto do cartão
-- Detalhe com rastreio em etapas (horário de cada uma), histórico, dados de entrega e atalho para o mapa
-- Formulário de pedido com busca de endereço pelo CEP (rua, bairro, cidade e UF preenchidos sozinhos), máscaras, itens dinâmicos e resumo com total ao vivo
+- **Tempo real:** painel e página do cliente mudam no instante em que um pedido é criado
+  ou avança (Server-Sent Events), com reconexão automática
+- **Link público de rastreio:** cada pedido tem um link (`/rastreio/{codigo}`) que o cliente
+  abre sem login para acompanhar as etapas, sem expor dados pessoais
+- **Alerta de atraso:** tempo máximo por etapa; a tela mostra há quanto tempo o pedido está
+  em cada etapa e destaca os atrasados (indicador, filtro, lista, quadro e detalhe)
+- **Painel do operador:** indicadores do dia, busca, filtros, visões de **lista** e
+  **quadro**, e avanço ou cancelamento do pedido direto do cartão
+- **Formulário de pedido:** endereço preenchido pelo CEP (ViaCEP com BrasilAPI de reserva),
+  telefone com DDD validado, itens dinâmicos e resumo com total ao vivo
+- **Cadastro e login:** e-mail conferido no DNS, bloqueio de e-mail temporário, sugestão de
+  correção (`@gmial.com` -> `@gmail.com`) e bloqueio temporário após 5 senhas erradas
 - Tema claro, escuro ou do sistema; layout responsivo; animações respeitam `prefers-reduced-motion`
 
 ## Como rodar
@@ -69,14 +77,16 @@ cd backend && ./mvnw test
 cd frontend && npm test
 ```
 
-- **Back-end (44):** unitários da máquina de estados (todas as 25 combinações de status) e
-  do agregado `Order`; integração da API com MockMvc e SQLite em memória cobrindo cadastro,
-  login, 401, validação, criação, busca, filtro, fluxo completo, transições inválidas e
-  conflito de versão; consulta de CEP com servidor HTTP simulado (sucesso, CEP inexistente,
-  reserva na BrasilAPI e os dois serviços fora do ar).
-- **Front-end (29):** Vitest e Testing Library para máscaras, conversão de preço, regras de
-  etapa, busca de CEP e o componente de ações de status (só mostra o que a API permite,
-  envia a versão, pede confirmação para cancelar e exibe o erro 409).
+- **Back-end (79):** máquina de estados (todas as 25 combinações), agregado `Order`, prazos
+  por etapa, telefone (DDDs e formatos), política de e-mail, bloqueio de login com relógio
+  simulado, distribuição de eventos SSE, consulta de CEP com servidor HTTP simulado e
+  integração da API com MockMvc e SQLite em memória (cadastro, login, 401, 429, validação,
+  CRUD, fluxo completo, transições inválidas, conflito de versão, rastreio público sem
+  dados pessoais e abertura dos streams).
+- **Front-end (60):** Vitest e Testing Library para máscaras, preço, regras de etapa, prazos,
+  sugestão de e-mail, telefone, leitura do stream SSE, busca de CEP e o componente de ações
+  de status (só mostra o que a API permite, envia a versão, confirma o cancelamento e exibe
+  o erro 409).
 
 A CI no GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)) roda os dois conjuntos, o
 build do front e o build das imagens Docker a cada push.
@@ -92,6 +102,15 @@ build do front e o build das imagens Docker a cada push.
 | `VIACEP_URL` | `https://viacep.com.br/ws` | Consulta de CEP (principal) |
 | `BRASILAPI_URL` | `https://brasilapi.com.br/api/cep/v1` | Consulta de CEP (reserva) |
 | `CEP_TIMEOUT` | `3s` | Tempo máximo de cada consulta de CEP |
+| `EMAIL_CHECK_DOMAIN` | `true` | Confere no DNS se o domínio do e-mail recebe mensagens |
+
+Os limites de tempo por etapa ficam em `app.sla.limits` no `application.yml` (10 min em
+Recebido, 30 em Em preparo, 45 em Saiu para entrega). Para ver o alerta de atraso sem
+esperar, suba a API com um limite curto:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.arguments=--app.sla.limits.RECEBIDO=1m
+```
 | `PORT` | `8080` | Porta da API |
 | `VITE_API_URL` (front) | vazio (usa o proxy) | URL base da API no build do front |
 
@@ -108,7 +127,10 @@ formato `ProblemDetail` (RFC 9457).
 | `GET` | `/api/orders/{id}` | Busca um pedido |
 | `POST` | `/api/orders` | Cria um pedido (status inicial `RECEBIDO`) |
 | `PATCH` | `/api/orders/{id}/status` | Altera o status: `{ "status": "EM_PREPARO", "version": 0 }` |
+| `GET` | `/api/orders/stream` | Eventos em tempo real (SSE) de pedidos criados ou alterados |
 | `GET` | `/api/address/cep/{cep}` | Endereço de um CEP (ViaCEP, com BrasilAPI de reserva) |
+| `GET` | `/api/public/tracking/{codigo}` | Rastreio público do pedido, **sem login** |
+| `GET` | `/api/public/tracking/{codigo}/stream` | Eventos em tempo real do pedido, **sem login** |
 
 Exemplo de criação:
 
@@ -127,8 +149,12 @@ Exemplo de criação:
 ```
 
 Códigos de resposta: `400` validação, `401` sem token, token inválido ou credenciais
-inválidas, `404` pedido ou CEP inexistente, `409` e-mail já cadastrado, transição não
-permitida ou versão desatualizada, `503` serviços de CEP fora do ar.
+inválidas, `404` pedido, CEP ou código de rastreio inexistente, `409` e-mail já cadastrado,
+transição não permitida ou versão desatualizada, `429` login bloqueado por excesso de
+tentativas (com `Retry-After`), `503` serviços de CEP fora do ar.
+
+Cada pedido também traz `trackingCode` (link público), `stageStartedAt` (quando entrou na
+etapa atual), `stageDeadline` (prazo da etapa) e `delayed`.
 
 O campo `version` do PATCH é opcional. Quando enviado, a API só aplica a mudança se o pedido
 ainda estiver naquela versão. Isso evita que um operador cancele, sem saber, um pedido que
@@ -168,8 +194,21 @@ duplicar a regra.
   `INTEGER` e o Hibernate espera `BIGINT`.
 - **Pool com uma conexão:** o SQLite aceita um escritor por vez, e uma conexão evita erros
   `SQLITE_BUSY`.
-- **"Ao vivo" por polling:** a lista e o detalhe se atualizam a cada 5 segundos via
-  TanStack Query. Para um rastreador real, o próximo passo seria SSE ou WebSocket.
+- **Tempo real com SSE, não WebSocket:** o fluxo é só do servidor para o navegador, e SSE
+  resolve isso sobre HTTP comum, com reconexão nativa. Os eventos saem depois do commit
+  da transação (`@TransactionalEventListener`), então ninguém recebe aviso de algo que foi
+  desfeito. O painel abre o stream com `fetch` para poder enviar o token; a página pública
+  usa `EventSource`. Uma consulta a cada 30 segundos fica como reserva.
+- **Link de rastreio:** código aleatório de 96 bits (`SecureRandom`), inviável de adivinhar.
+  A resposta pública leva só primeiro nome, bairro, cidade, itens, total e etapas.
+- **Prazos por etapa no back-end:** como as transições, a regra fica na API, que devolve o
+  prazo; o front só exibe e recalcula com o relógio para o alerta aparecer sem nova consulta.
+- **E-mail sem API externa:** o domínio é conferido no DNS (MX, com A/AAAA de reserva) pelo
+  próprio JDK. Se o DNS não responder, o cadastro segue; só é bloqueado o domínio que
+  comprovadamente não recebe e-mail. Garantir que a caixa existe exigiria e-mail de
+  confirmação, fora do escopo.
+- **Bloqueio de login por e-mail + IP:** evita tentativa e erro de senha sem permitir que
+  alguém bloqueie a conta de outra pessoa de qualquer lugar.
 - **Concorrência:** o pedido tem `@Version` (lock otimista) e o PATCH aceita a versão vista
   pelo cliente. Uma mudança feita sobre dados desatualizados recebe 409, e o front
   recarrega a tela.
@@ -187,6 +226,8 @@ duplicar a regra.
 
 - SQLite atende bem a um único processo. Para produção, a troca por PostgreSQL se resume
   a driver, URL e dialeto, já que o acesso passa por JPA e Flyway.
+- Conexões SSE, tentativas de login e caches ficam em memória, o que basta para uma
+  instância. Com várias, iriam para um armazenamento compartilhado (ex.: Redis).
 - Sem paginação na listagem, sem papéis de usuário (admin/operador) e sem refresh token.
 
 ## Estrutura
@@ -196,6 +237,7 @@ backend/
   src/main/java/com/rastreador/
     auth/      cadastro, login, JWT e filtro de autenticação
     order/     agregado Order, máquina de estados, serviço e controller
+    order/stream/  eventos em tempo real (SSE)
     address/   consulta de CEP (ViaCEP com BrasilAPI de reserva) e cache
     user/      entidade e repositório de usuário
     common/    exceções e handler global de erros
@@ -208,8 +250,9 @@ frontend/
   src/
     api/         cliente HTTP e hooks do TanStack Query
     auth/        contexto de sessão e rotas protegidas
-    hooks/       busca de endereço pelo CEP
+    hooks/       busca de CEP, eventos em tempo real e relógio
+    validation/  sugestão de e-mail e telefone
     components/  badge, progresso, linha do tempo, ações de status, editor de itens
-    pages/       login, cadastro, lista, detalhe e novo pedido
+    pages/       login, cadastro, lista, detalhe, novo pedido e rastreio público
 .github/workflows/ci.yml   testes e builds a cada push
 ```
