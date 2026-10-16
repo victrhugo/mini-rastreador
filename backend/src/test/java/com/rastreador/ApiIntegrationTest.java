@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.UUID;
@@ -379,6 +380,30 @@ class ApiIntegrationTest {
                     .andExpect(jsonPath("$.createdBy").doesNotExist())
                     .andExpect(content().string(not(containsString("11999990000"))))
                     .andExpect(content().string(not(containsString("Rua das Flores"))));
+        }
+
+        @Test
+        void operatorStreamOpensForAuthenticatedUsers() throws Exception {
+            mvc.perform(get("/api/orders/stream").header(HttpHeaders.AUTHORIZATION, bearer()))
+                    .andExpect(request().asyncStarted())
+                    .andExpect(header().string(HttpHeaders.CONTENT_TYPE, containsString("text/event-stream")));
+
+            mvc.perform(get("/api/orders/stream")).andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void publicStreamOpensOnlyForExistingTrackingCodes() throws Exception {
+            String created = mvc.perform(post("/api/orders")
+                            .header(HttpHeaders.AUTHORIZATION, bearer())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(ORDER_JSON))
+                    .andReturn().getResponse().getContentAsString();
+            String code = JsonPath.read(created, "$.trackingCode");
+
+            mvc.perform(get("/api/public/tracking/{code}/stream", code))
+                    .andExpect(request().asyncStarted());
+            mvc.perform(get("/api/public/tracking/{code}/stream", "nao-existe"))
+                    .andExpect(status().isNotFound());
         }
 
         @Test

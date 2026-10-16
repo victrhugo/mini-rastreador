@@ -3,6 +3,7 @@ package com.rastreador.order;
 import java.util.List;
 import java.util.Locale;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import com.rastreador.common.UnauthorizedException;
 import com.rastreador.order.dto.CreateOrderRequest;
 import com.rastreador.order.dto.OrderResponse;
 import com.rastreador.order.dto.PublicTrackingResponse;
+import com.rastreador.order.stream.OrderChangedEvent;
 import com.rastreador.user.User;
 import com.rastreador.user.UserRepository;
 
@@ -21,11 +23,14 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final SlaPolicy slaPolicy;
+    private final ApplicationEventPublisher events;
 
-    public OrderService(OrderRepository orderRepository, UserRepository userRepository, SlaPolicy slaPolicy) {
+    public OrderService(OrderRepository orderRepository, UserRepository userRepository, SlaPolicy slaPolicy,
+            ApplicationEventPublisher events) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.slaPolicy = slaPolicy;
+        this.events = events;
     }
 
     @Transactional
@@ -48,7 +53,9 @@ public class OrderService {
                 items,
                 userReference(currentUser));
 
-        return toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        publishChange(saved);
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -71,7 +78,23 @@ public class OrderService {
             throw new StaleOrderException(id);
         }
         order.changeStatus(next, userReference(currentUser));
-        return toResponse(orderRepository.saveAndFlush(order));
+        Order saved = orderRepository.saveAndFlush(order);
+        publishChange(saved);
+        return toResponse(saved);
+    }
+
+    /** O evento só é entregue aos clientes conectados depois do commit (veja OrderStreamService). */
+    private void publishChange(Order order) {
+        events.publishEvent(new OrderChangedEvent(order.getId(), order.getTrackingCode(), order.getStatus(),
+                order.getVersion()));
+    }
+
+    /** Lança 404 se o código não existir; usado antes de abrir o stream público. */
+    @Transactional(readOnly = true)
+    public void requireTrackingCode(String code) {
+        if (orderRepository.findByTrackingCode(code).isEmpty()) {
+            throw new NotFoundException("Pedido não encontrado. Confira o link de rastreio.");
+        }
     }
 
     /** Visão pública do pedido para o link de rastreio (sem dados pessoais). */
