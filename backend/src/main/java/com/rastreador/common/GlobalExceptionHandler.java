@@ -45,6 +45,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "O registro foi alterado por outra pessoa. Atualize a tela e tente novamente.");
     }
 
+    @ExceptionHandler(BadRequestException.class)
+    ProblemDetail handleBadRequest(BadRequestException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "Requisição inválida", ex.getMessage());
+    }
+
+    @ExceptionHandler(ServiceUnavailableException.class)
+    ProblemDetail handleServiceUnavailable(ServiceUnavailableException ex) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "Serviço indisponível", ex.getMessage());
+    }
+
     @ExceptionHandler(UnauthorizedException.class)
     ProblemDetail handleUnauthorized(UnauthorizedException ex) {
         return problem(HttpStatus.UNAUTHORIZED, "Não autorizado", ex.getMessage());

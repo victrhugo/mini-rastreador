@@ -32,7 +32,7 @@ public record OrderResponse(
     }
 
     public record AddressResponse(String street, String number, String complement,
-            String district, String city, String zipCode) {
+            String district, String city, String state, String zipCode) {
     }
 
     public record ItemResponse(Long id, String description, int quantity, BigDecimal unitPrice, BigDecimal subtotal) {
@@ -50,7 +50,7 @@ public record OrderResponse(
                 toMoney(order.getTotalCents()),
                 new CustomerResponse(order.getCustomer().getName(), order.getCustomer().getPhone()),
                 new AddressResponse(address.getStreet(), address.getNumber(), address.getComplement(),
-                        address.getDistrict(), address.getCity(), address.getZipCode()),
+                        address.getDistrict(), address.getCity(), address.getState(), address.getZipCode()),
                 order.getItems().stream().map(OrderResponse::toItem).toList(),
                 order.getHistory().stream().map(OrderResponse::toHistory).toList(),
                 order.getCreatedBy().getName(),

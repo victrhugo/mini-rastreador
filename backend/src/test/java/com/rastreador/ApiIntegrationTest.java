@@ -38,7 +38,7 @@ class ApiIntegrationTest {
             {
               "customer": { "name": "Ana Souza", "phone": "11999990000" },
               "address": { "street": "Rua das Flores", "number": "100", "complement": "Apto 12",
-                           "district": "Centro", "city": "São Paulo", "zipCode": "01000-000" },
+                           "district": "Centro", "city": "São Paulo", "state": "sp", "zipCode": "01000-000" },
               "items": [
                 { "description": "Pizza calabresa", "quantity": 2, "unitPrice": 49.90 },
                 { "description": "Refrigerante 2L", "quantity": 1, "unitPrice": 8.00 }
@@ -199,6 +199,7 @@ class ApiIntegrationTest {
                     .andExpect(jsonPath("$.allowedTransitions[0]").value("EM_PREPARO"))
                     .andExpect(jsonPath("$.allowedTransitions[1]").value("CANCELADO"))
                     .andExpect(jsonPath("$.history.length()").value(1))
+                    .andExpect(jsonPath("$.address.state").value("SP"))
                     .andExpect(jsonPath("$.createdBy").value("Operador"));
         }
 
@@ -214,6 +215,7 @@ class ApiIntegrationTest {
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.errors['customer.name']").exists())
                     .andExpect(jsonPath("$.errors['address.zipCode']").exists())
+                    .andExpect(jsonPath("$.errors['address.state']").exists())
                     .andExpect(jsonPath("$.errors.items").exists());
         }
 

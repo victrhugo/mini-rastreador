@@ -16,7 +16,7 @@ class OrderTest {
     private Order newOrder() {
         return Order.create(
                 new Customer("Ana", "11999990000"),
-                new Address("Rua A", "10", null, "Centro", "São Paulo", "01000-000"),
+                new Address("Rua A", "10", null, "Centro", "São Paulo", "SP", "01000-000"),
                 List.of(new OrderItem("Pizza", 2, 4990), new OrderItem("Refrigerante", 1, 800)),
                 user);
     }
@@ -37,7 +37,7 @@ class OrderTest {
     void orderWithoutItemsIsRejected() {
         assertThatThrownBy(() -> Order.create(
                 new Customer("Ana", null),
-                new Address("Rua A", "10", null, "Centro", "São Paulo", "01000-000"),
+                new Address("Rua A", "10", null, "Centro", "São Paulo", "SP", "01000-000"),
                 List.of(),
                 user))
                 .isInstanceOf(IllegalArgumentException.class);

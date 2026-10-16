@@ -1,6 +1,7 @@
 package com.rastreador.order;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +40,8 @@ public class OrderService {
         Order order = Order.create(
                 new Customer(customer.name().trim(), blankToNull(customer.phone())),
                 new Address(address.street().trim(), address.number().trim(), blankToNull(address.complement()),
-                        address.district().trim(), address.city().trim(), address.zipCode().trim()),
+                        address.district().trim(), address.city().trim(), address.state().trim().toUpperCase(Locale.ROOT),
+                        address.zipCode().trim()),
                 items,
                 userReference(currentUser));
 

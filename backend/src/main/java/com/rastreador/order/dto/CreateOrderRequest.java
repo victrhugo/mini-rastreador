@@ -56,6 +56,10 @@ public record CreateOrderRequest(
             @Size(max = 120)
             String city,
 
+            @NotBlank(message = "UF é obrigatória")
+            @Pattern(regexp = "^[A-Za-z]{2}$", message = "UF deve ter 2 letras")
+            String state,
+
             @NotBlank(message = "CEP é obrigatório")
             @Pattern(regexp = "^\\d{5}-?\\d{3}$", message = "CEP deve estar no formato 00000-000")
             String zipCode) {

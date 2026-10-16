@@ -34,3 +34,8 @@ app:
     expiration: ${JWT_EXPIRATION:2h}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  cep:
+    # ViaCEP é a fonte principal; a BrasilAPI só é usada se a ViaCEP falhar ou demorar.
+    via-cep-url: ${VIACEP_URL:https://viacep.com.br/ws}
+    brasil-api-url: ${BRASILAPI_URL:https://brasilapi.com.br/api/cep/v1}
+    timeout: ${CEP_TIMEOUT:3s}

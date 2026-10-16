@@ -21,18 +21,24 @@ public class Address {
     @Column(nullable = false, length = 120)
     private String city;
 
+    /** UF com duas letras (ex.: SP). */
+    @Column(length = 2)
+    private String state;
+
     @Column(name = "zip_code", nullable = false, length = 9)
     private String zipCode;
 
     protected Address() {
     }
 
-    public Address(String street, String number, String complement, String district, String city, String zipCode) {
+    public Address(String street, String number, String complement, String district, String city, String state,
+            String zipCode) {
         this.street = street;
         this.number = number;
         this.complement = complement;
         this.district = district;
         this.city = city;
+        this.state = state;
         this.zipCode = zipCode;
     }
 
@@ -54,6 +60,10 @@ public class Address {
 
     public String getCity() {
         return city;
+    }
+
+    public String getState() {
+        return state;
     }
 
     public String getZipCode() {
