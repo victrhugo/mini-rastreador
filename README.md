@@ -202,10 +202,3 @@ frontend/
     pages/       login, cadastro, lista, detalhe e novo pedido
 .github/workflows/ci.yml   testes e builds a cada push
 ```
-
-## Uso de IA
-
-O projeto foi desenvolvido com o Claude Code, usado para discutir o produto e a
-arquitetura antes de escrever código, gerar a implementação em commits incrementais e
-testar o fluxo no navegador. Todas as decisões de produto (visibilidade dos pedidos, regra
-de cancelamento, itens em texto livre) foram tomadas por mim durante esse processo.

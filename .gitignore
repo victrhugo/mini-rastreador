@@ -18,5 +18,3 @@ frontend/.env.local
 *.log
 frontend/*.tsbuildinfo
 
-# Ferramentas locais
-.claude/
