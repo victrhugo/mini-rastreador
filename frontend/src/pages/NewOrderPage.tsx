@@ -20,6 +20,7 @@ import { formatMoney, maskPhone, maskZipCode } from '../format'
 import { useZipCodeLookup, type ZipCodeLookup } from '../hooks/useZipCodeLookup'
 import { itemSubtotal, newItem, parsePrice, type ItemDraft } from '../orderDraft'
 import type { AddressLookup, CreateOrderInput } from '../types'
+import { phoneProblem } from '../validation/phone'
 
 const emptyForm = {
   customerName: '',
@@ -83,6 +84,10 @@ export function NewOrderPage() {
   }, [])
 
   const zipLookup = useZipCodeLookup(form.zipCode, fillAddress)
+
+  // Telefone validado ao sair do campo, com as mesmas regras da API.
+  const [phoneTouched, setPhoneTouched] = useState(false)
+  const phoneError = errorFor('customer.phone') ?? (phoneTouched ? phoneProblem(form.customerPhone) ?? undefined : undefined)
 
   const total = items.reduce((sum, item) => sum + itemSubtotal(item), 0)
   const filledItems = items.filter((item) => item.description.trim())
@@ -174,7 +179,9 @@ export function NewOrderPage() {
                 inputMode="tel"
                 placeholder="(11) 99999-0000"
                 icon={<PhoneIcon className="size-4" />}
+                onBlur={() => setPhoneTouched(true)}
                 {...field('customerPhone', maskPhone)}
+                error={phoneError}
               />
             </div>
           </Section>

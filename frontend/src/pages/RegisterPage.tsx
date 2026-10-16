@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Alert, Button, Field } from '../components/ui'
+import { suggestEmail } from '../validation/email'
 import { AuthLayout } from './AuthLayout'
 import { PasswordField } from './LoginPage'
 
@@ -13,6 +14,7 @@ export function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
+  const emailSuggestion = suggestEmail(form.email)
 
   const set = (field: keyof typeof form) => (value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -62,17 +64,28 @@ export function RegisterPage() {
           onChange={(e) => set('name')(e.target.value)}
           error={fieldErrors.name}
         />
-        <Field
-          label="E-mail"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="voce@empresa.com"
-          icon={<EnvelopeSimpleIcon className="size-4" />}
-          value={form.email}
-          onChange={(e) => set('email')(e.target.value)}
-          error={fieldErrors.email}
-        />
+        <div className="space-y-1.5">
+          <Field
+            label="E-mail"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="voce@empresa.com"
+            icon={<EnvelopeSimpleIcon className="size-4" />}
+            value={form.email}
+            onChange={(e) => set('email')(e.target.value)}
+            error={fieldErrors.email}
+          />
+          {emailSuggestion && (
+            <button
+              type="button"
+              onClick={() => set('email')(emailSuggestion)}
+              className="text-left text-xs text-ink-2 hover:text-ink"
+            >
+              Você quis dizer <span className="font-medium text-accent underline underline-offset-2">{emailSuggestion}</span>?
+            </button>
+          )}
+        </div>
         <PasswordField
           value={form.password}
           onChange={set('password')}
