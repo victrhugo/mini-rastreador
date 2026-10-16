@@ -71,3 +71,8 @@ export function reachedStep(status: OrderStatus, history: StatusChange[] = []) {
   const from = history.at(-1)?.from
   return from ? DELIVERY_STEPS.indexOf(from) : 0
 }
+
+/** Entregue ou cancelado: o pedido não muda mais. */
+export function isFinalStatus(status: OrderStatus) {
+  return status === 'ENTREGUE' || status === 'CANCELADO'
+}

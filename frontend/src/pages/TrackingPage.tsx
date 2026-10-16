@@ -10,7 +10,7 @@ import { StatusStepper } from '../components/StatusStepper'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { Alert, Card, Skeleton } from '../components/ui'
 import { formatMoney, formatTime } from '../format'
-import { STATUS } from '../status'
+import { isFinalStatus, STATUS } from '../status'
 import type { OrderStatus, PublicTracking, StatusChange } from '../types'
 
 /** Mensagens escritas para o cliente final, não para o operador. */
@@ -25,7 +25,9 @@ const CUSTOMER_MESSAGE: Record<OrderStatus, { title: string; text: string }> = {
 export function TrackingPage() {
   const code = useParams().code ?? ''
   const { data, isPending, isError, error, dataUpdatedAt, isFetching } = usePublicTracking(code)
-  const live = useTrackingEvents(code, Boolean(data))
+  // Pedido entregue ou cancelado não muda mais: não há por que manter a conexão aberta.
+  const finished = data ? isFinalStatus(data.status) : false
+  const live = useTrackingEvents(code, Boolean(data) && !finished)
 
   return (
     <div className="min-h-[100dvh]">
@@ -124,7 +126,13 @@ function Tracking({ tracking, updatedAt, fetching, live }: {
       </Card>
 
       <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-ink-3">
-        <LiveIndicator updatedAt={updatedAt} fetching={fetching} live={live} />
+        {isFinalStatus(tracking.status) ? (
+          <span>
+            Pedido {tracking.status === 'ENTREGUE' ? 'entregue' : 'cancelado'} às {formatTime(tracking.updatedAt)}
+          </span>
+        ) : (
+          <LiveIndicator updatedAt={updatedAt} fetching={fetching} live={live} />
+        )}
         <span>Pedido feito às {formatTime(tracking.createdAt)}</span>
       </div>
     </>
