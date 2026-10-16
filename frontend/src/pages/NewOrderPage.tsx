@@ -2,9 +2,10 @@ import { useState, type ChangeEvent, type FormEvent, type ReactNode } from 'reac
 import { Link, useNavigate } from 'react-router'
 import { ApiError } from '../api/client'
 import { useCreateOrder } from '../api/orders'
-import { ItemsEditor, itemSubtotal, newItem, parsePrice, type ItemDraft } from '../components/ItemsEditor'
+import { ItemsEditor } from '../components/ItemsEditor'
 import { Alert, Button, Card, Field } from '../components/ui'
 import { formatMoney } from '../format'
+import { itemSubtotal, newItem, parsePrice, type ItemDraft } from '../orderDraft'
 import type { CreateOrderInput } from '../types'
 
 const emptyForm = {

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Alert, Button, Field } from '../components/ui'
@@ -7,8 +7,6 @@ import { AuthLayout } from './AuthLayout'
 
 export function LoginPage() {
   const { login } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -19,12 +17,10 @@ export function LoginPage() {
     setError(null)
     setSubmitting(true)
     try {
+      // Com o usuário definido, o GuestRoute redireciona para a página de origem.
       await login(email, password)
-      const from = (location.state as { from?: string } | null)?.from ?? '/orders'
-      navigate(from, { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Erro inesperado ao entrar.')
-    } finally {
       setSubmitting(false)
     }
   }

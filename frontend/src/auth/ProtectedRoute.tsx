@@ -12,8 +12,17 @@ export function ProtectedRoute() {
   return <Outlet />
 }
 
-/** Telas de login/cadastro: quem já está logado vai direto para os pedidos. */
+/**
+ * Telas de login/cadastro. Assim que há usuário (inclusive logo após entrar),
+ * volta para a página que pediu login, ou para a lista de pedidos.
+ */
 export function GuestRoute() {
   const { user } = useAuth()
-  return user ? <Navigate to="/orders" replace /> : <Outlet />
+  const location = useLocation()
+
+  if (user) {
+    const from = (location.state as { from?: string } | null)?.from ?? '/orders'
+    return <Navigate to={from} replace />
+  }
+  return <Outlet />
 }

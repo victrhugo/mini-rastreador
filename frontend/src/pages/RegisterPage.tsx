@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Alert, Button, Field } from '../components/ui'
@@ -7,7 +7,6 @@ import { AuthLayout } from './AuthLayout'
 
 export function RegisterPage() {
   const { register } = useAuth()
-  const navigate = useNavigate()
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -22,8 +21,8 @@ export function RegisterPage() {
     setFieldErrors({})
     setSubmitting(true)
     try {
+      // Com o usuário definido, o GuestRoute redireciona para os pedidos.
       await register(form.name, form.email, form.password)
-      navigate('/orders', { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message)

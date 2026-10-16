@@ -1,29 +1,6 @@
 import { formatMoney } from '../format'
+import { itemSubtotal, newItem, type ItemDraft } from '../orderDraft'
 import { Button, Field } from './ui'
-
-export interface ItemDraft {
-  key: number
-  description: string
-  quantity: string
-  unitPrice: string
-}
-
-/** Converte "49,90" ou "49.90" em número; NaN se inválido. */
-export function parsePrice(value: string) {
-  const raw = value.trim()
-  // Com vírgula, o ponto é separador de milhar ("1.234,56"); sem vírgula, é decimal ("49.90").
-  const normalized = raw.includes(',') ? raw.replace(/\./g, '').replace(',', '.') : raw
-  return normalized === '' ? NaN : Number(normalized)
-}
-
-export function itemSubtotal(item: ItemDraft) {
-  const quantity = Number(item.quantity)
-  const price = parsePrice(item.unitPrice)
-  return Number.isFinite(quantity) && Number.isFinite(price) ? quantity * price : 0
-}
-
-let nextKey = 1
-export const newItem = (): ItemDraft => ({ key: nextKey++, description: '', quantity: '1', unitPrice: '' })
 
 interface Props {
   items: ItemDraft[]
@@ -32,7 +9,7 @@ interface Props {
 }
 
 export function ItemsEditor({ items, onChange, errors }: Props) {
-  const update = (key: number, patch: Partial<ItemDraft>) =>
+  const update = (key: string, patch: Partial<ItemDraft>) =>
     onChange(items.map((item) => (item.key === key ? { ...item, ...patch } : item)))
 
   return (
