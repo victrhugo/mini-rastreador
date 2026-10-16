@@ -41,7 +41,18 @@ export interface Address {
   complement: string | null
   district: string
   city: string
+  /** UF com duas letras. */
+  state: string
   zipCode: string
+}
+
+/** Resposta de GET /api/address/cep/{cep}. Rua e bairro podem vir vazios (cidades com CEP único). */
+export interface AddressLookup {
+  zipCode: string
+  street: string
+  district: string
+  city: string
+  state: string
 }
 
 export interface Order {

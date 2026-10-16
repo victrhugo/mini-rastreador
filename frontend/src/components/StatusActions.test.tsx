@@ -13,7 +13,7 @@ function makeOrder(status: OrderStatus, allowedTransitions: OrderStatus[]): Orde
     allowedTransitions,
     total: 49.9,
     customer: { name: 'Ana Souza', phone: null },
-    address: { street: 'Rua A', number: '1', complement: null, district: 'Centro', city: 'São Paulo', zipCode: '01000-000' },
+    address: { street: 'Rua A', number: '1', complement: null, district: 'Centro', city: 'São Paulo', state: 'SP', zipCode: '01000-000' },
     items: [],
     history: [],
     createdBy: 'Operador',

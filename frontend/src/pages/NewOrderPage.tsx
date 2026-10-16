@@ -1,5 +1,15 @@
-import { ArrowLeftIcon, MapPinIcon, PhoneIcon, ReceiptIcon, UserIcon, type Icon } from '@phosphor-icons/react'
-import { useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
+import {
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  CircleNotchIcon,
+  MapPinIcon,
+  PhoneIcon,
+  ReceiptIcon,
+  UserIcon,
+  WarningCircleIcon,
+  type Icon,
+} from '@phosphor-icons/react'
+import { useCallback, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ApiError } from '../api/client'
 import { useCreateOrder } from '../api/orders'
@@ -7,8 +17,9 @@ import { ItemsEditor } from '../components/ItemsEditor'
 import { useToast } from '../components/Toast'
 import { Alert, Button, Card, Field } from '../components/ui'
 import { formatMoney, maskPhone, maskZipCode } from '../format'
+import { useZipCodeLookup, type ZipCodeLookup } from '../hooks/useZipCodeLookup'
 import { itemSubtotal, newItem, parsePrice, type ItemDraft } from '../orderDraft'
-import type { CreateOrderInput } from '../types'
+import type { AddressLookup, CreateOrderInput } from '../types'
 
 const emptyForm = {
   customerName: '',
@@ -18,6 +29,7 @@ const emptyForm = {
   complement: '',
   district: '',
   city: '',
+  state: '',
   zipCode: '',
 }
 
@@ -32,8 +44,12 @@ const API_FIELD: Record<keyof FormState, string> = {
   complement: 'address.complement',
   district: 'address.district',
   city: 'address.city',
+  state: 'address.state',
   zipCode: 'address.zipCode',
 }
+
+/** UF: só letras, no máximo 2, em maiúsculas. */
+const maskState = (value: string) => value.replace(/[^a-z]/gi, '').slice(0, 2).toUpperCase()
 
 export function NewOrderPage() {
   const navigate = useNavigate()
@@ -47,6 +63,26 @@ export function NewOrderPage() {
   const apiError = createOrder.error instanceof ApiError ? createOrder.error : null
   const errorFor = (path: string) => (edited.has(path) ? undefined : apiError?.fieldErrors[path])
   const markEdited = (path: string) => setEdited((prev) => (prev.has(path) ? prev : new Set(prev).add(path)))
+
+  const streetRef = useRef<HTMLInputElement>(null)
+  const numberRef = useRef<HTMLInputElement>(null)
+
+  // Preenche rua, bairro, cidade e UF com o que o CEP trouxer e leva o foco ao próximo campo vazio.
+  const fillAddress = useCallback((address: AddressLookup) => {
+    setForm((prev) => ({
+      ...prev,
+      street: address.street || prev.street,
+      district: address.district || prev.district,
+      city: address.city || prev.city,
+      state: address.state || prev.state,
+    }))
+    ;['address.street', 'address.district', 'address.city', 'address.state'].forEach((path) =>
+      setEdited((prev) => (prev.has(path) ? prev : new Set(prev).add(path))),
+    )
+    ;(address.street ? numberRef : streetRef).current?.focus()
+  }, [])
+
+  const zipLookup = useZipCodeLookup(form.zipCode, fillAddress)
 
   const total = items.reduce((sum, item) => sum + itemSubtotal(item), 0)
   const filledItems = items.filter((item) => item.description.trim())
@@ -87,6 +123,7 @@ export function NewOrderPage() {
         complement: form.complement || undefined,
         district: form.district,
         city: form.city,
+        state: form.state,
         zipCode: form.zipCode,
       },
       items: items.map((item) => ({
@@ -144,12 +181,22 @@ export function NewOrderPage() {
 
           <Section Icon={MapPinIcon} title="Endereço de entrega">
             <div className="grid gap-4 sm:grid-cols-6">
-              <Field className="sm:col-span-2" label="CEP" placeholder="00000-000" inputMode="numeric" {...field('zipCode', maskZipCode)} />
-              <Field className="sm:col-span-4" label="Rua" placeholder="Rua, avenida, alameda" {...field('street')} />
-              <Field className="sm:col-span-2" label="Número" placeholder="123" {...field('number')} />
+              <Field
+                className="sm:col-span-2"
+                label="CEP"
+                placeholder="00000-000"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                trailing={<ZipCodeStatus lookup={zipLookup} />}
+                hint={zipCodeHint(zipLookup)}
+                {...field('zipCode', maskZipCode)}
+              />
+              <Field ref={streetRef} className="sm:col-span-4" label="Rua" placeholder="Rua, avenida, alameda" {...field('street')} />
+              <Field ref={numberRef} className="sm:col-span-2" label="Número" placeholder="123" {...field('number')} />
               <Field className="sm:col-span-4" label="Complemento" optional placeholder="Apto, bloco, referência" {...field('complement')} />
               <Field className="sm:col-span-3" label="Bairro" {...field('district')} />
-              <Field className="sm:col-span-3" label="Cidade" {...field('city')} />
+              <Field className="sm:col-span-2" label="Cidade" {...field('city')} />
+              <Field className="sm:col-span-1" label="UF" placeholder="SP" autoCapitalize="characters" {...field('state', maskState)} />
             </div>
           </Section>
 
@@ -168,6 +215,11 @@ export function NewOrderPage() {
               {form.street.trim() && (
                 <p className="truncate text-xs text-ink-3">
                   {form.street}{form.number && `, ${form.number}`}{form.district && `, ${form.district}`}
+                </p>
+              )}
+              {form.city.trim() && (
+                <p className="truncate text-xs text-ink-3">
+                  {form.city}{form.state && `, ${form.state}`}
                 </p>
               )}
             </div>
@@ -224,4 +276,32 @@ function Section({ Icon, title, description, children }: {
       {children}
     </Card>
   )
+}
+
+function zipCodeHint(lookup: ZipCodeLookup) {
+  switch (lookup.status) {
+    case 'idle':
+      return 'O endereço é preenchido pelo CEP.'
+    case 'loading':
+      return 'Buscando endereço...'
+    case 'found':
+      return 'Endereço encontrado. Confira e complete.'
+    case 'not-found':
+      return 'CEP não encontrado. Preencha o endereço.'
+    case 'error':
+      return 'Busca indisponível. Preencha o endereço.'
+  }
+}
+
+function ZipCodeStatus({ lookup }: { lookup: ZipCodeLookup }) {
+  if (lookup.status === 'loading') {
+    return <CircleNotchIcon className="size-4 shrink-0 animate-spin text-ink-3" weight="bold" aria-label="Buscando CEP" />
+  }
+  if (lookup.status === 'found') {
+    return <CheckCircleIcon className="size-4 shrink-0 text-success" weight="fill" aria-label="CEP encontrado" />
+  }
+  if (lookup.status === 'not-found' || lookup.status === 'error') {
+    return <WarningCircleIcon className="size-4 shrink-0 text-ink-3" weight="fill" aria-label="CEP sem endereço" />
+  }
+  return null
 }

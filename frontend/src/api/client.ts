@@ -24,7 +24,10 @@ export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler
 }
 
-export async function api<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function api<T>(
+  path: string,
+  options: { method?: string; body?: unknown; signal?: AbortSignal } = {},
+): Promise<T> {
   const headers: Record<string, string> = {}
   if (options.body !== undefined) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
@@ -35,8 +38,10 @@ export async function api<T>(path: string, options: { method?: string; body?: un
       method: options.method ?? 'GET',
       headers,
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      signal: options.signal,
     })
-  } catch {
+  } catch (error) {
+    if (options.signal?.aborted) throw error
     throw new ApiError(0, 'Não foi possível conectar à API. Verifique se o back-end está rodando.')
   }
 

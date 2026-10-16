@@ -42,9 +42,9 @@ function OrderDetail({ order, updatedAt, fetching }: { order: Order; updatedAt: 
   const { Icon, label, description } = STATUS[order.status]
   const cancelled = order.status === 'CANCELADO'
   const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0)
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${order.address.street}, ${order.address.number}, ${order.address.city}, ${order.address.zipCode}`,
-  )}`
+  const { street, number, city, state, zipCode } = order.address
+  const mapsQuery = [`${street}, ${number}`, city, state, zipCode].filter(Boolean).join(', ')
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`
 
   return (
     <>
@@ -140,6 +140,7 @@ function OrderDetail({ order, updatedAt, fetching }: { order: Order; updatedAt: 
                 {order.address.complement && <>, {order.address.complement}</>}
                 <br />
                 {order.address.district}, {order.address.city}
+                {order.address.state && <>, {order.address.state}</>}
                 <br />
                 CEP {order.address.zipCode}
               </address>
