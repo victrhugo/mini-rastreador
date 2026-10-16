@@ -77,16 +77,16 @@ cd backend && ./mvnw test
 cd frontend && npm test
 ```
 
-- **Back-end (79):** máquina de estados (todas as 25 combinações), agregado `Order`, prazos
+- **Back-end (88):** máquina de estados (todas as 25 combinações), agregado `Order`, prazos
   por etapa, telefone (DDDs e formatos), política de e-mail, bloqueio de login com relógio
-  simulado, distribuição de eventos SSE, consulta de CEP com servidor HTTP simulado e
-  integração da API com MockMvc e SQLite em memória (cadastro, login, 401, 429, validação,
-  CRUD, fluxo completo, transições inválidas, conflito de versão, rastreio público sem
-  dados pessoais e abertura dos streams).
-- **Front-end (60):** Vitest e Testing Library para máscaras, preço, regras de etapa, prazos,
+  simulado (inclusive tentativas em paralelo), limite de cadastros, distribuição e limites
+  de conexões SSE, consulta de CEP com servidor HTTP simulado e integração da API com
+  MockMvc e SQLite em memória (cadastro, login, 401, 429, validação, CRUD, fluxo completo,
+  transições inválidas, conflito de versão, rastreio público sem dados pessoais e streams).
+- **Front-end (61):** Vitest e Testing Library para máscaras, preço, regras de etapa, prazos,
   sugestão de e-mail, telefone, leitura do stream SSE, busca de CEP e o componente de ações
   de status (só mostra o que a API permite, envia a versão, confirma o cancelamento e exibe
-  o erro 409).
+  o erro 409), além de um teste que garante que a CSP do nginx libera o script do `index.html`.
 
 A CI no GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)) roda os dois conjuntos, o
 build do front e o build das imagens Docker a cada push.
@@ -95,7 +95,8 @@ build do front e o build das imagens Docker a cada push.
 
 | Variável | Padrão | Uso |
 |---|---|---|
-| `JWT_SECRET` | segredo de desenvolvimento | Chave HMAC do JWT (mín. 32 bytes). **Defina fora do ambiente local.** |
+| `JWT_SECRET` | vazio (chave aleatória) | Chave HMAC do JWT (mín. 32 bytes). Sem ela, a API gera uma chave a cada inicialização e os logins expiram ao reiniciar. **Defina em produção.** |
+| `SWAGGER_ENABLED` | `true` | Liga a documentação em `/swagger-ui.html` |
 | `JWT_EXPIRATION` | `2h` | Validade do token |
 | `DB_PATH` | `./data/rastreador.db` | Caminho do arquivo SQLite |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Origens liberadas no CORS |
@@ -207,8 +208,20 @@ duplicar a regra.
   próprio JDK. Se o DNS não responder, o cadastro segue; só é bloqueado o domínio que
   comprovadamente não recebe e-mail. Garantir que a caixa existe exigiria e-mail de
   confirmação, fora do escopo.
-- **Bloqueio de login por e-mail + IP:** evita tentativa e erro de senha sem permitir que
-  alguém bloqueie a conta de outra pessoa de qualquer lugar.
+- **Limites contra abuso:** login bloqueado após 5 erros por e-mail + IP (sem permitir que
+  alguém bloqueie a conta de outra pessoa) e após 30 tentativas por IP (contra testar
+  muitas contas); no máximo 10 cadastros por IP por hora; conexões em tempo real limitadas
+  no total, por operador e por link público. Os contadores ficam em caches com validade e
+  tamanho máximo (Caffeine), então a memória não cresce sem fim.
+- **SQLite com uma conexão:** cadastro e login não abrem transação, para que BCrypt e DNS
+  (lentos) não segurem a conexão única; os eventos de tempo real saem em um executor
+  próprio, fora da thread que grava o pedido.
+- **Cadastro aberto, todos veem todos os pedidos:** é o que o desafio pede (cadastro de
+  usuário + acesso só para autenticados) e a visão de operador escolhida. Em produção, o
+  cadastro seria por convite ou haveria papéis (operador, gerente) e escopo por loja.
+- **Segurança das páginas:** o nginx envia CSP restrita, `X-Frame-Options`, `nosniff` e
+  `Referrer-Policy`, e repassa à API o IP real do cliente (um `X-Forwarded-For` forjado não
+  burla o limite de login).
 - **Concorrência:** o pedido tem `@Version` (lock otimista) e o PATCH aceita a versão vista
   pelo cliente. Uma mudança feita sobre dados desatualizados recebe 409, e o front
   recarrega a tela.
@@ -229,6 +242,7 @@ duplicar a regra.
 - Conexões SSE, tentativas de login e caches ficam em memória, o que basta para uma
   instância. Com várias, iriam para um armazenamento compartilhado (ex.: Redis).
 - Sem paginação na listagem, sem papéis de usuário (admin/operador) e sem refresh token.
+- O número do pedido (sequencial) aparece na página pública, como em apps de delivery.
 
 ## Estrutura
 
