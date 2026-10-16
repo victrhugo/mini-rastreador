@@ -1,0 +1,18 @@
+# OS / IDE
+.DS_Store
+.idea/
+*.iml
+.vscode/
+
+# Backend
+backend/target/
+backend/data/*.db
+backend/data/*.db-*
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# Logs
+*.log
