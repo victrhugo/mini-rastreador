@@ -11,7 +11,7 @@ autenticado cadastra pedidos e acompanha cada um pelas etapas, do recebimento à
 - Painel com indicadores do dia (em andamento, em rota, entregues e vendas), busca e filtro por status
 - Duas visões: **lista** e **quadro** por etapa, com botões para avançar ou cancelar o pedido direto do cartão
 - Detalhe com rastreio em etapas (horário de cada uma), histórico, dados de entrega e atalho para o mapa
-- Formulário de pedido com máscaras de CEP e telefone, itens dinâmicos e resumo com total ao vivo
+- Formulário de pedido com busca de endereço pelo CEP (rua, bairro, cidade e UF preenchidos sozinhos), máscaras, itens dinâmicos e resumo com total ao vivo
 - Tema claro, escuro ou do sistema; layout responsivo; animações respeitam `prefers-reduced-motion`
 
 ## Como rodar
@@ -69,13 +69,14 @@ cd backend && ./mvnw test
 cd frontend && npm test
 ```
 
-- **Back-end (32):** unitários da máquina de estados (todas as 25 combinações de status) e
+- **Back-end (44):** unitários da máquina de estados (todas as 25 combinações de status) e
   do agregado `Order`; integração da API com MockMvc e SQLite em memória cobrindo cadastro,
   login, 401, validação, criação, busca, filtro, fluxo completo, transições inválidas e
-  conflito de versão.
-- **Front-end (24):** Vitest e Testing Library para máscaras, conversão de preço, regras de
-  etapa e o componente de ações de status (só mostra o que a API permite, envia a versão,
-  pede confirmação para cancelar e exibe o erro 409).
+  conflito de versão; consulta de CEP com servidor HTTP simulado (sucesso, CEP inexistente,
+  reserva na BrasilAPI e os dois serviços fora do ar).
+- **Front-end (29):** Vitest e Testing Library para máscaras, conversão de preço, regras de
+  etapa, busca de CEP e o componente de ações de status (só mostra o que a API permite,
+  envia a versão, pede confirmação para cancelar e exibe o erro 409).
 
 A CI no GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)) roda os dois conjuntos, o
 build do front e o build das imagens Docker a cada push.
@@ -88,6 +89,9 @@ build do front e o build das imagens Docker a cada push.
 | `JWT_EXPIRATION` | `2h` | Validade do token |
 | `DB_PATH` | `./data/rastreador.db` | Caminho do arquivo SQLite |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Origens liberadas no CORS |
+| `VIACEP_URL` | `https://viacep.com.br/ws` | Consulta de CEP (principal) |
+| `BRASILAPI_URL` | `https://brasilapi.com.br/api/cep/v1` | Consulta de CEP (reserva) |
+| `CEP_TIMEOUT` | `3s` | Tempo máximo de cada consulta de CEP |
 | `PORT` | `8080` | Porta da API |
 | `VITE_API_URL` (front) | vazio (usa o proxy) | URL base da API no build do front |
 
@@ -104,6 +108,7 @@ formato `ProblemDetail` (RFC 9457).
 | `GET` | `/api/orders/{id}` | Busca um pedido |
 | `POST` | `/api/orders` | Cria um pedido (status inicial `RECEBIDO`) |
 | `PATCH` | `/api/orders/{id}/status` | Altera o status: `{ "status": "EM_PREPARO", "version": 0 }` |
+| `GET` | `/api/address/cep/{cep}` | Endereço de um CEP (ViaCEP, com BrasilAPI de reserva) |
 
 Exemplo de criação:
 
@@ -112,7 +117,7 @@ Exemplo de criação:
   "customer": { "name": "Ana Souza", "phone": "11999990000" },
   "address": {
     "street": "Rua das Flores", "number": "100", "complement": "Apto 12",
-    "district": "Centro", "city": "São Paulo", "zipCode": "01000-000"
+    "district": "Centro", "city": "São Paulo", "state": "SP", "zipCode": "01000-000"
   },
   "items": [
     { "description": "Pizza calabresa", "quantity": 2, "unitPrice": 49.90 },
@@ -122,8 +127,8 @@ Exemplo de criação:
 ```
 
 Códigos de resposta: `400` validação, `401` sem token, token inválido ou credenciais
-inválidas, `404` pedido inexistente, `409` e-mail já cadastrado, transição não permitida ou
-versão desatualizada.
+inválidas, `404` pedido ou CEP inexistente, `409` e-mail já cadastrado, transição não
+permitida ou versão desatualizada, `503` serviços de CEP fora do ar.
 
 O campo `version` do PATCH é opcional. Quando enviado, a API só aplica a mudança se o pedido
 ainda estiver naquela versão. Isso evita que um operador cancele, sem saber, um pedido que
@@ -172,7 +177,11 @@ duplicar a regra.
   existir, a requisição recebe 401 e o front encerra a sessão.
 - **Token no `localStorage`:** simples e suficiente para o desafio, mas fica exposto a XSS.
   Em produção, o token iria para um cookie `HttpOnly` com `SameSite`, com refresh token.
-- **Pacotes por funcionalidade** (`auth`, `order`, `user`, `common`) em vez de por camada.
+- **CEP pelo back-end:** o front chama a própria API, que consulta a ViaCEP e cai para a
+  BrasilAPI se a primeira falhar ou passar de 3 segundos. Assim o front não depende de
+  serviços externos, a troca de provedor fica num lugar só e os resultados ficam em cache.
+  Se nenhum serviço responder, o formulário avisa e o endereço pode ser preenchido à mão.
+- **Pacotes por funcionalidade** (`auth`, `order`, `address`, `user`, `common`) em vez de por camada.
 
 ### Limitações conhecidas
 
@@ -187,6 +196,7 @@ backend/
   src/main/java/com/rastreador/
     auth/      cadastro, login, JWT e filtro de autenticação
     order/     agregado Order, máquina de estados, serviço e controller
+    address/   consulta de CEP (ViaCEP com BrasilAPI de reserva) e cache
     user/      entidade e repositório de usuário
     common/    exceções e handler global de erros
     config/    segurança, CORS e OpenAPI
@@ -198,6 +208,7 @@ frontend/
   src/
     api/         cliente HTTP e hooks do TanStack Query
     auth/        contexto de sessão e rotas protegidas
+    hooks/       busca de endereço pelo CEP
     components/  badge, progresso, linha do tempo, ações de status, editor de itens
     pages/       login, cadastro, lista, detalhe e novo pedido
 .github/workflows/ci.yml   testes e builds a cada push
