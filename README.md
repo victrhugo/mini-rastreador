@@ -8,10 +8,24 @@ autenticado cadastra pedidos e acompanha cada um pelas etapas, do recebimento à
 
 ## Como rodar
 
+### Opção rápida: Docker
+
+Com Docker instalado, um comando sobe a API e o front:
+
+```bash
+docker compose up --build
+```
+
+Acesse <http://localhost:3000>. O nginx serve o front e encaminha `/api` para a API, e os
+dados ficam no volume `db-data`. Para usar outra porta, rode `WEB_PORT=8081 docker compose
+up --build`. Para apagar os dados, rode `docker compose down -v`.
+
+### Opção local
+
 Pré-requisitos: **Java 21+** e **Node.js 20.19+** (ou 22.12+). Maven não precisa estar
 instalado, porque o projeto usa o Maven Wrapper.
 
-### 1. API (porta 8080)
+#### 1. API (porta 8080)
 
 ```bash
 cd backend
@@ -24,7 +38,7 @@ schema. Para zerar os dados, pare a API e apague esse arquivo.
 Swagger UI: <http://localhost:8080/swagger-ui.html>. Para usar, faça login em
 `/api/auth/login` e cole o token no botão **Authorize**.
 
-### 2. Front-end (porta 5173)
+#### 2. Front-end (porta 5173)
 
 ```bash
 cd frontend
@@ -145,7 +159,10 @@ backend/
     common/    exceções e handler global de erros
     config/    segurança, CORS e OpenAPI
   src/main/resources/db/migration/   migrations do Flyway
+  Dockerfile   build multi-stage (JDK) e imagem final só com JRE
 frontend/
+  Dockerfile   build com Node e imagem final com nginx
+  nginx.conf   SPA + proxy de /api para o backend
   src/
     api/         cliente HTTP e hooks do TanStack Query
     auth/        contexto de sessão e rotas protegidas

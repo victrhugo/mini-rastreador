@@ -1,0 +1,27 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      # Troque em qualquer ambiente que não seja local: export JWT_SECRET=... antes do compose up.
+      JWT_SECRET: ${JWT_SECRET:-docker-dev-secret-change-me-32-bytes!!}
+      DB_PATH: /data/rastreador.db
+    volumes:
+      - db-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8080' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  db-data:
