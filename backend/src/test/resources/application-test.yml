@@ -1,0 +1,4 @@
+spring:
+  datasource:
+    # Banco em memória: vive enquanto o pool mantiver a conexão aberta (o contexto de teste).
+    url: jdbc:sqlite:file:rastreador-test?mode=memory&cache=shared&foreign_keys=on
