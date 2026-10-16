@@ -3,6 +3,7 @@ import { AuthProvider } from './auth/AuthContext'
 import { GuestRoute, ProtectedRoute } from './auth/ProtectedRoute'
 import { AppLayout } from './components/AppLayout'
 import { LoginPage } from './pages/LoginPage'
+import { NewOrderPage } from './pages/NewOrderPage'
 import { OrderDetailPage } from './pages/OrderDetailPage'
 import { OrdersPage } from './pages/OrdersPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -18,6 +19,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/orders/new" element={<NewOrderPage />} />
             <Route path="/orders/:id" element={<OrderDetailPage />} />
           </Route>
         </Route>

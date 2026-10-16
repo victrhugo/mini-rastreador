@@ -25,6 +25,12 @@ export function OrdersPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Pedidos</h1>
           {orders && <LiveIndicator updatedAt={dataUpdatedAt} fetching={isFetching} />}
         </div>
+        <Link
+          to="/orders/new"
+          className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700"
+        >
+          + Novo pedido
+        </Link>
       </div>
 
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filtrar por status">
@@ -106,6 +112,11 @@ function EmptyState({ filtered }: { filtered: boolean }) {
       <p className="mt-1 text-sm text-slate-500">
         {filtered ? 'Troque o filtro para ver outros pedidos.' : 'Os pedidos criados aparecem aqui.'}
       </p>
+      {!filtered && (
+        <Link to="/orders/new" className="mt-4 inline-block text-sm font-medium text-orange-700 hover:underline">
+          Criar o primeiro pedido
+        </Link>
+      )}
     </div>
   )
 }
