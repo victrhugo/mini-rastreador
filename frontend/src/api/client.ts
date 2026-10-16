@@ -64,12 +64,16 @@ export async function api<T>(
 
   if (!response.ok) {
     const problem = await response.json().catch(() => null)
-    throw new ApiError(
-      response.status,
-      problem?.detail ?? `Erro ${response.status}`,
-      problem?.errors ?? {},
-    )
+    throw new ApiError(response.status, problem?.detail ?? fallbackMessage(response.status), problem?.errors ?? {})
   }
 
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T)
+}
+
+/** Mensagem para respostas sem corpo da API (ex.: proxy sem resposta enquanto a API reinicia). */
+function fallbackMessage(status: number) {
+  if (status === 502 || status === 503 || status === 504) {
+    return 'A API está fora do ar ou reiniciando. Tente de novo em alguns segundos.'
+  }
+  return `Não foi possível concluir a ação (erro ${status}). Tente de novo.`
 }

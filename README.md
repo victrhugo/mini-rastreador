@@ -77,13 +77,13 @@ cd backend && ./mvnw test
 cd frontend && npm test
 ```
 
-- **Back-end (88):** máquina de estados (todas as 25 combinações), agregado `Order`, prazos
+- **Back-end (99):** máquina de estados (todas as 25 combinações), agregado `Order`, prazos
   por etapa, telefone (DDDs e formatos), política de e-mail, bloqueio de login com relógio
   simulado (inclusive tentativas em paralelo), limite de cadastros, distribuição e limites
   de conexões SSE, consulta de CEP com servidor HTTP simulado e integração da API com
   MockMvc e SQLite em memória (cadastro, login, 401, 429, validação, CRUD, fluxo completo,
   transições inválidas, conflito de versão, rastreio público sem dados pessoais e streams).
-- **Front-end (61):** Vitest e Testing Library para máscaras, preço, regras de etapa, prazos,
+- **Front-end (63):** Vitest e Testing Library para máscaras, preço, regras de etapa, prazos,
   sugestão de e-mail, telefone, leitura do stream SSE, busca de CEP e o componente de ações
   de status (só mostra o que a API permite, envia a versão, confirma o cancelamento e exibe
   o erro 409), além de um teste que garante que a CSP do nginx libera o script do `index.html`.
@@ -204,9 +204,12 @@ duplicar a regra.
   A resposta pública leva só primeiro nome, bairro, cidade, itens, total e etapas.
 - **Prazos por etapa no back-end:** como as transições, a regra fica na API, que devolve o
   prazo; o front só exibe e recalcula com o relógio para o alerta aparecer sem nova consulta.
-- **E-mail sem API externa:** o domínio é conferido no DNS (MX, com A/AAAA de reserva) pelo
-  próprio JDK. Se o DNS não responder, o cadastro segue; só é bloqueado o domínio que
-  comprovadamente não recebe e-mail. Garantir que a caixa existe exigiria e-mail de
+- **E-mail sem API externa:** o domínio precisa ter servidor de e-mail (registro MX),
+  conferido no DNS pelo próprio JDK; "MX nulo" (`0 .`) conta como sem e-mail. Domínios a
+  até duas letras de um provedor conhecido (`gmial.com`, `hotmial.com`) são recusados com
+  sugestão, porque muitos existem de verdade para capturar e-mails digitados errado. Se o
+  DNS não responder, o cadastro segue; só é bloqueado o domínio que comprovadamente não
+  recebe e-mail. Garantir que a caixa existe exigiria e-mail de
   confirmação, fora do escopo.
 - **Limites contra abuso:** login bloqueado após 5 erros por e-mail + IP (sem permitir que
   alguém bloqueie a conta de outra pessoa) e após 30 tentativas por IP (contra testar
