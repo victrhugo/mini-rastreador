@@ -9,7 +9,7 @@ autenticado cadastra pedidos e acompanha cada um pelas etapas, do recebimento à
 ### Interface
 
 - Painel com indicadores do dia (em andamento, em rota, entregues e vendas), busca e filtro por status
-- Duas visões: **lista** e **quadro** por etapa, com botão para avançar o pedido direto do cartão
+- Duas visões: **lista** e **quadro** por etapa, com botões para avançar ou cancelar o pedido direto do cartão
 - Detalhe com rastreio em etapas (horário de cada uma), histórico, dados de entrega e atalho para o mapa
 - Formulário de pedido com máscaras de CEP e telefone, itens dinâmicos e resumo com total ao vivo
 - Tema claro, escuro ou do sistema; layout responsivo; animações respeitam `prefers-reduced-motion`
@@ -54,19 +54,31 @@ npm install
 npm run dev
 ```
 
-Acesse <http://localhost:5173>, crie uma conta e comece a cadastrar pedidos. Em
+Acesse <http://localhost:5173>, crie uma conta e comece a cadastrar pedidos. O banco começa
+vazio, sem dados de exemplo. Em
 desenvolvimento, o Vite encaminha `/api` para `localhost:8080`, então não é preciso
 configurar nada.
 
 ### Testes
 
 ```bash
-cd backend
-./mvnw test
+cd backend && ./mvnw test
 ```
 
-São 30 testes: unitários da máquina de estados e do agregado `Order`, e de integração da
-API (MockMvc + SQLite em memória) cobrindo autenticação, validação, CRUD e transições.
+```bash
+cd frontend && npm test
+```
+
+- **Back-end (32):** unitários da máquina de estados (todas as 25 combinações de status) e
+  do agregado `Order`; integração da API com MockMvc e SQLite em memória cobrindo cadastro,
+  login, 401, validação, criação, busca, filtro, fluxo completo, transições inválidas e
+  conflito de versão.
+- **Front-end (24):** Vitest e Testing Library para máscaras, conversão de preço, regras de
+  etapa e o componente de ações de status (só mostra o que a API permite, envia a versão,
+  pede confirmação para cancelar e exibe o erro 409).
+
+A CI no GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)) roda os dois conjuntos, o
+build do front e o build das imagens Docker a cada push.
 
 ### Variáveis de ambiente (opcionais)
 
@@ -91,7 +103,7 @@ formato `ProblemDetail` (RFC 9457).
 | `GET` | `/api/orders?status=` | Lista pedidos, mais recentes primeiro (filtro opcional) |
 | `GET` | `/api/orders/{id}` | Busca um pedido |
 | `POST` | `/api/orders` | Cria um pedido (status inicial `RECEBIDO`) |
-| `PATCH` | `/api/orders/{id}/status` | Altera o status: `{ "status": "EM_PREPARO" }` |
+| `PATCH` | `/api/orders/{id}/status` | Altera o status: `{ "status": "EM_PREPARO", "version": 0 }` |
 
 Exemplo de criação:
 
@@ -109,8 +121,13 @@ Exemplo de criação:
 }
 ```
 
-Códigos de resposta: `400` validação, `401` sem token ou credenciais inválidas, `404`
-pedido inexistente, `409` e-mail já cadastrado ou transição de status não permitida.
+Códigos de resposta: `400` validação, `401` sem token, token inválido ou credenciais
+inválidas, `404` pedido inexistente, `409` e-mail já cadastrado, transição não permitida ou
+versão desatualizada.
+
+O campo `version` do PATCH é opcional. Quando enviado, a API só aplica a mudança se o pedido
+ainda estiver naquela versão. Isso evita que um operador cancele, sem saber, um pedido que
+outro operador acabou de avançar.
 
 ## Regras de status
 
@@ -148,6 +165,13 @@ duplicar a regra.
   `SQLITE_BUSY`.
 - **"Ao vivo" por polling:** a lista e o detalhe se atualizam a cada 5 segundos via
   TanStack Query. Para um rastreador real, o próximo passo seria SSE ou WebSocket.
+- **Concorrência:** o pedido tem `@Version` (lock otimista) e o PATCH aceita a versão vista
+  pelo cliente. Uma mudança feita sobre dados desatualizados recebe 409, e o front
+  recarrega a tela.
+- **Token de usuário removido:** o filtro JWT confere se o usuário ainda existe; se não
+  existir, a requisição recebe 401 e o front encerra a sessão.
+- **Token no `localStorage`:** simples e suficiente para o desafio, mas fica exposto a XSS.
+  Em produção, o token iria para um cookie `HttpOnly` com `SameSite`, com refresh token.
 - **Pacotes por funcionalidade** (`auth`, `order`, `user`, `common`) em vez de por camada.
 
 ### Limitações conhecidas
@@ -176,6 +200,7 @@ frontend/
     auth/        contexto de sessão e rotas protegidas
     components/  badge, progresso, linha do tempo, ações de status, editor de itens
     pages/       login, cadastro, lista, detalhe e novo pedido
+.github/workflows/ci.yml   testes e builds a cada push
 ```
 
 ## Uso de IA
