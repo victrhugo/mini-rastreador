@@ -1,3 +1,4 @@
+import { EnvelopeSimpleIcon, EyeIcon, EyeSlashIcon, LockSimpleIcon } from '@phosphor-icons/react'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { ApiError } from '../api/client'
@@ -26,21 +27,69 @@ export function LoginPage() {
   }
 
   return (
-    <AuthLayout title="Mini Rastreador" subtitle="Entre para acompanhar os pedidos">
+    <AuthLayout
+      title="Entrar"
+      subtitle="Acesse o painel de pedidos com seu e-mail."
+      footer={
+        <>
+          Ainda não tem conta?{' '}
+          <Link to="/register" className="font-medium text-accent hover:underline">Criar conta</Link>
+        </>
+      }
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <Alert>{error}</Alert>}
-        <Field label="E-mail" type="email" autoComplete="email" required autoFocus
-          value={email} onChange={(e) => setEmail(e.target.value)} />
-        <Field label="Senha" type="password" autoComplete="current-password" required
-          value={password} onChange={(e) => setPassword(e.target.value)} />
-        <Button type="submit" className="w-full" disabled={submitting}>
-          {submitting ? 'Entrando…' : 'Entrar'}
+        <Field
+          label="E-mail"
+          name="email"
+          type="email"
+          autoComplete="email"
+          placeholder="voce@empresa.com"
+          required
+          autoFocus
+          icon={<EnvelopeSimpleIcon className="size-4" />}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <PasswordField value={password} onChange={setPassword} autoComplete="current-password" />
+        <Button type="submit" size="lg" className="w-full" loading={submitting}>
+          {submitting ? 'Entrando' : 'Entrar'}
         </Button>
       </form>
-      <p className="mt-6 text-center text-sm text-slate-500">
-        Não tem conta?{' '}
-        <Link to="/register" className="font-medium text-orange-700 hover:underline">Cadastre-se</Link>
-      </p>
     </AuthLayout>
+  )
+}
+
+export function PasswordField({ value, onChange, autoComplete, error, hint }: {
+  value: string
+  onChange: (value: string) => void
+  autoComplete: string
+  error?: string
+  hint?: string
+}) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <Field
+      label="Senha"
+      name="password"
+      type={visible ? 'text' : 'password'}
+      autoComplete={autoComplete}
+      required
+      icon={<LockSimpleIcon className="size-4" />}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      error={error}
+      hint={hint}
+      trailing={
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          className="-mr-1 rounded-md p-1 text-ink-3 hover:text-ink"
+          aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}
+        >
+          {visible ? <EyeSlashIcon className="size-4" /> : <EyeIcon className="size-4" />}
+        </button>
+      }
+    />
   )
 }

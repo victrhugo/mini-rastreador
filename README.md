@@ -4,7 +4,15 @@ Versão simplificada de um sistema de rastreamento de pedidos de delivery. Um op
 autenticado cadastra pedidos e acompanha cada um pelas etapas, do recebimento à entrega.
 
 - **Back-end:** Java 21, Spring Boot 4, Spring Security (JWT), Spring Data JPA, Flyway, SQLite
-- **Front-end:** React 19, TypeScript, Vite, TanStack Query, React Router, Tailwind CSS
+- **Front-end:** React 19, TypeScript, Vite, TanStack Query, React Router, Tailwind CSS v4, Motion, Phosphor Icons
+
+### Interface
+
+- Painel com indicadores do dia (em andamento, em rota, entregues e vendas), busca e filtro por status
+- Duas visões: **lista** e **quadro** por etapa, com botão para avançar o pedido direto do cartão
+- Detalhe com rastreio em etapas (horário de cada uma), histórico, dados de entrega e atalho para o mapa
+- Formulário de pedido com máscaras de CEP e telefone, itens dinâmicos e resumo com total ao vivo
+- Tema claro, escuro ou do sistema; layout responsivo; animações respeitam `prefers-reduced-motion`
 
 ## Como rodar
 

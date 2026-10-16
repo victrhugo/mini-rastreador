@@ -1,5 +1,124 @@
 @import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
 
-body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+/*
+ * Tokens semânticos. O tema é escolhido pelo atributo data-theme no <html>
+ * (definido antes da pintura em index.html e controlado por src/theme.ts).
+ *
+ * Raios: cartões 12px (rounded-xl), controles 8px (rounded-lg), selos e avatares redondos.
+ * Camadas: header fixo z-20, toasts z-50, diálogos usam a top layer nativa.
+ */
+:root {
+  color-scheme: light;
+  --canvas: #f4f4f5;
+  --surface: #fdfdfd;
+  --surface-2: #f1f1f3;
+  --line: #e4e4e7;
+  --line-strong: #d4d4d8;
+  --ink: #18181b;
+  --ink-2: #52525b;
+  --ink-3: #6b6b74;
+  --accent: #c2410c;
+  --accent-hover: #9a3412;
+  --accent-contrast: #fff7ed;
+  --accent-soft: color-mix(in oklab, #c2410c 11%, transparent);
+  --danger: #be123c;
+  --danger-soft: color-mix(in oklab, #be123c 10%, transparent);
+  --danger-contrast: #fff1f2;
+  --success: #059669;
+  --shadow-card: 0 1px 2px rgb(24 24 27 / 0.05), 0 4px 12px -6px rgb(24 24 27 / 0.06);
+  --shadow-pop: 0 12px 32px -12px rgb(24 24 27 / 0.22), 0 2px 6px rgb(24 24 27 / 0.06);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0b0b0d;
+  --surface: #141417;
+  --surface-2: #1c1c20;
+  --line: #26262b;
+  --line-strong: #36363d;
+  --ink: #f4f4f5;
+  --ink-2: #a8a8b1;
+  --ink-3: #8b8b95;
+  --accent: #fb923c;
+  --accent-hover: #fdba74;
+  --accent-contrast: #1c0a02;
+  --accent-soft: color-mix(in oklab, #fb923c 15%, transparent);
+  --danger: #fb7185;
+  --danger-soft: color-mix(in oklab, #fb7185 14%, transparent);
+  --danger-contrast: #1c0a0e;
+  --success: #34d399;
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset;
+  --shadow-pop: 0 16px 40px -12px rgb(0 0 0 / 0.6);
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-contrast: var(--danger-contrast);
+  --color-success: var(--success);
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+}
+
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", monospace;
+}
+
+/* Cores de status: --st é o tom principal, --st-ink o texto sobre fundo suave. */
+.st-RECEBIDO { --st: #71717a; --st-ink: #3f3f46; }
+.st-EM_PREPARO { --st: #d97706; --st-ink: #92400e; }
+.st-SAIU_PARA_ENTREGA { --st: #0284c7; --st-ink: #075985; }
+.st-ENTREGUE { --st: #059669; --st-ink: #065f46; }
+.st-CANCELADO { --st: #e11d48; --st-ink: #9f1239; }
+
+[data-theme="dark"] .st-RECEBIDO { --st: #a1a1aa; --st-ink: #d4d4d8; }
+[data-theme="dark"] .st-EM_PREPARO { --st: #fbbf24; --st-ink: #fcd34d; }
+[data-theme="dark"] .st-SAIU_PARA_ENTREGA { --st: #38bdf8; --st-ink: #7dd3fc; }
+[data-theme="dark"] .st-ENTREGUE { --st: #34d399; --st-ink: #6ee7b7; }
+[data-theme="dark"] .st-CANCELADO { --st: #fb7185; --st-ink: #fda4af; }
+
+.st-badge {
+  background: color-mix(in oklab, var(--st) 12%, transparent);
+  color: var(--st-ink);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--st) 26%, transparent);
+}
+.st-soft { background: color-mix(in oklab, var(--st) 12%, transparent); color: var(--st-ink); }
+.st-fill { background: var(--st); }
+.st-text { color: var(--st-ink); }
+.st-ring { box-shadow: 0 0 0 4px color-mix(in oklab, var(--st) 18%, transparent); }
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+  dialog::backdrop {
+    background: rgb(9 9 11 / 0.45);
+    backdrop-filter: blur(2px);
+  }
 }
