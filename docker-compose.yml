@@ -2,8 +2,9 @@ services:
   backend:
     build: ./backend
     environment:
-      # Troque em qualquer ambiente que não seja local: export JWT_SECRET=... antes do compose up.
-      JWT_SECRET: ${JWT_SECRET:-docker-dev-secret-change-me-32-bytes!!}
+      # Sem valor, a API gera uma chave aleatória a cada inicialização (nenhum segredo fica no repositório).
+      # Em produção, defina antes do compose up: export JWT_SECRET="$(openssl rand -base64 48)"
+      JWT_SECRET: ${JWT_SECRET:-}
       DB_PATH: /data/rastreador.db
     volumes:
       - db-data:/data

@@ -5,9 +5,10 @@ import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * @param maxAttempts  erros de senha seguidos permitidos antes do bloqueio
- * @param lockDuration por quanto tempo o login fica bloqueado depois disso
+ * @param maxAttempts      tentativas seguidas permitidas por e-mail + IP antes do bloqueio
+ * @param maxAttemptsPerIp tentativas permitidas por IP, somando todas as contas
+ * @param lockDuration     por quanto tempo o login fica bloqueado depois disso
  */
 @ConfigurationProperties(prefix = "app.login")
-public record LoginProperties(int maxAttempts, Duration lockDuration) {
+public record LoginProperties(int maxAttempts, int maxAttemptsPerIp, Duration lockDuration) {
 }

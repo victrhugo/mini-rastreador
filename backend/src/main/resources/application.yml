@@ -1,6 +1,13 @@
 spring:
   application:
     name: mini-rastreador-api
+  autoconfigure:
+    # A autenticação é por JWT; sem isso o Spring cria um usuário em memória com senha no log.
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  cache:
+    # Caches limitados e com validade (CEP e domínios de e-mail).
+    caffeine:
+      spec: maximumSize=10000,expireAfterWrite=6h
 
   datasource:
     url: jdbc:sqlite:${DB_PATH:./data/rastreador.db}?foreign_keys=on
@@ -32,7 +39,8 @@ server:
 app:
   jwt:
     # Valor padrão serve só para desenvolvimento local. Em qualquer outro ambiente, defina JWT_SECRET.
-    secret: ${JWT_SECRET:dev-only-secret-change-me-please-32bytes!}
+    # Sem valor, a API gera uma chave aleatória a cada inicialização (logins expiram ao reiniciar).
+    secret: ${JWT_SECRET:}
     expiration: ${JWT_EXPIRATION:2h}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
@@ -48,9 +56,24 @@ app:
       SAIU_PARA_ENTREGA: 45m
   login:
     max-attempts: 5
+    max-attempts-per-ip: 30
     lock-duration: 15m
+  registration:
+    max-per-ip: 10
+    window: 1h
+  stream:
+    max-connections: 500
+    max-per-operator: 5
+    max-per-tracking-code: 10
   cep:
     # ViaCEP é a fonte principal; a BrasilAPI só é usada se a ViaCEP falhar ou demorar.
     via-cep-url: ${VIACEP_URL:https://viacep.com.br/ws}
     brasil-api-url: ${BRASILAPI_URL:https://brasilapi.com.br/api/cep/v1}
     timeout: ${CEP_TIMEOUT:3s}
+
+springdoc:
+  # Documentação da API; pode ser desligada em produção com SWAGGER_ENABLED=false.
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}

@@ -47,8 +47,8 @@ public class OrderController {
 
     @GetMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "Eventos em tempo real (SSE) a cada pedido criado ou com status alterado")
-    public SseEmitter stream() {
-        return orderStreamService.subscribeOperator();
+    public SseEmitter stream(@AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return orderStreamService.subscribeOperator(currentUser.id());
     }
 
     @GetMapping("/{id}")

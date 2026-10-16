@@ -37,13 +37,23 @@ public class EmailPolicy {
     public void validate(String email) {
         String domain = email.substring(email.lastIndexOf('@') + 1);
 
-        if (disposableDomains.contains(domain)) {
+        if (isDisposable(domain)) {
             throw new FieldValidationException("email", "E-mails temporários não são aceitos.");
         }
         if (properties.checkDomain() && verifier.check(domain) == DomainStatus.INVALID) {
             throw new FieldValidationException("email", "O domínio %s não recebe e-mails. Confira o endereço."
                     .formatted(domain));
         }
+    }
+
+    /** Confere o domínio e os "pais" dele: x.mailinator.com também é descartável. */
+    private boolean isDisposable(String domain) {
+        for (String candidate = domain; candidate.contains("."); candidate = candidate.substring(candidate.indexOf('.') + 1)) {
+            if (disposableDomains.contains(candidate)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Set<String> loadDisposableDomains() {

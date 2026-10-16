@@ -78,13 +78,16 @@ public class Order {
     protected Order() {
     }
 
-    public static Order create(Customer customer, Address address, List<OrderItem> items, User createdBy) {
+    /**
+     * @param now momento da criação (vem do Clock da aplicação, o que torna os prazos testáveis)
+     */
+    public static Order create(Customer customer, Address address, List<OrderItem> items, User createdBy,
+            Instant now) {
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("Pedido precisa de pelo menos um item");
         }
 
         Order order = new Order();
-        Instant now = Instant.now();
         order.customer = customer;
         order.address = address;
         order.createdBy = createdBy;
@@ -98,12 +101,11 @@ public class Order {
         return order;
     }
 
-    public void changeStatus(OrderStatus next, User changedBy) {
+    public void changeStatus(OrderStatus next, User changedBy, Instant now) {
         if (!status.canTransitionTo(next)) {
             throw new InvalidStatusTransitionException(status, next);
         }
 
-        Instant now = Instant.now();
         history.add(new OrderStatusHistory(this, status, next, changedBy, now));
         status = next;
         updatedAt = now;

@@ -47,4 +47,10 @@ class EmailPolicyTest {
         assertThatCode(() -> policyWith(DomainStatus.INVALID, false).validate("ana@qualquer.test"))
                 .doesNotThrowAnyException();
     }
+
+    @Test
+    void rejectsSubdomainsOfDisposableProviders() {
+        assertThatThrownBy(() -> policyWith(DomainStatus.VALID, false).validate("x@caixa.mailinator.com"))
+                .isInstanceOf(FieldValidationException.class);
+    }
 }

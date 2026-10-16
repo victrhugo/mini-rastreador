@@ -84,8 +84,7 @@ public class SecurityConfig {
             response.setCharacterEncoding("UTF-8");
             response.getWriter().write("""
                     {"type":"about:blank","title":"Não autorizado","status":401,\
-                    "detail":"Token ausente, inválido ou expirado.","instance":"%s"}"""
-                    .formatted(request.getRequestURI()));
+                    "detail":"Token ausente, inválido ou expirado."}""");
         };
     }
 }

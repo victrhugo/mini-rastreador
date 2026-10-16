@@ -1,6 +1,7 @@
 package com.rastreador.order;
 
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,9 +35,13 @@ public class PublicTrackingController {
     }
 
     @GetMapping(path = "/{code}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "Eventos em tempo real (SSE) do pedido, para a página pública de rastreio")
-    public SseEmitter stream(@PathVariable String code) {
-        orderService.requireTrackingCode(code);
-        return orderStreamService.subscribeTracking(code);
+    @Operation(summary = "Eventos em tempo real (SSE) do pedido, para a página pública de rastreio",
+            description = "Pedido já entregue ou cancelado responde 204: não haverá novas mudanças "
+                    + "(e o EventSource para de reconectar).")
+    public ResponseEntity<SseEmitter> stream(@PathVariable String code) {
+        if (orderService.trackingStatus(code).isFinal()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(orderStreamService.subscribeTracking(code));
     }
 }

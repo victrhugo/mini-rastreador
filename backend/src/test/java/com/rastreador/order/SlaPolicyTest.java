@@ -26,7 +26,8 @@ class SlaPolicyTest {
                 new Customer("Ana", null),
                 new Address("Rua A", "10", null, "Centro", "São Paulo", "SP", "01000-000"),
                 List.of(new OrderItem("Pizza", 1, 4990)),
-                user);
+                user,
+                Instant.now());
     }
 
     private static SlaPolicy policyAt(Instant now) {
@@ -53,7 +54,7 @@ class SlaPolicyTest {
     @Test
     void changingStageRestartsTheClock() {
         Order order = newOrder();
-        order.changeStatus(OrderStatus.EM_PREPARO, user);
+        order.changeStatus(OrderStatus.EM_PREPARO, user, Instant.now());
 
         Instant deadline = policyAt(Instant.now()).deadlineFor(order);
         assertThat(deadline).isEqualTo(order.getStageStartedAt().plus(Duration.ofMinutes(30)));
@@ -62,7 +63,7 @@ class SlaPolicyTest {
     @Test
     void stagesWithoutLimitNeverDelay() {
         Order order = newOrder();
-        order.changeStatus(OrderStatus.CANCELADO, user);
+        order.changeStatus(OrderStatus.CANCELADO, user, Instant.now());
 
         SlaPolicy policy = policyAt(Instant.now().plus(Duration.ofDays(1)));
         assertThat(policy.deadlineFor(order)).isNull();

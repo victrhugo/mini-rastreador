@@ -165,6 +165,18 @@ class ApiIntegrationTest {
         }
 
         @Test
+        void passwordLongerThanBcryptLimitIsRejectedWithoutServerError() throws Exception {
+            register(uniqueEmail(), "ç".repeat(40)) // 40 caracteres, 80 bytes
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors.password").exists());
+
+            mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email":"ninguem@teste.com","password":"%s"}""".formatted("x".repeat(100))))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
         void ordersRequireAuthentication() throws Exception {
             mvc.perform(get("/api/orders"))
                     .andExpect(status().isUnauthorized())
@@ -404,6 +416,12 @@ class ApiIntegrationTest {
                     .andExpect(request().asyncStarted());
             mvc.perform(get("/api/public/tracking/{code}/stream", "nao-existe"))
                     .andExpect(status().isNotFound());
+
+            // Pedido encerrado: 204, sem stream (o EventSource para de reconectar).
+            Integer id = JsonPath.read(created, "$.id");
+            changeStatus(id, "CANCELADO").andExpect(status().isOk());
+            mvc.perform(get("/api/public/tracking/{code}/stream", code))
+                    .andExpect(status().isNoContent());
         }
 
         @Test

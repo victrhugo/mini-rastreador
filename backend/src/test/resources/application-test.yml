@@ -4,6 +4,11 @@ spring:
     url: jdbc:sqlite:file:rastreador-test?mode=memory&cache=shared&foreign_keys=on
 
 app:
+  registration:
+    # Os testes cadastram muitos usuários a partir do mesmo "IP".
+    max-per-ip: 100000
+  login:
+    max-attempts-per-ip: 100000
   email:
     # Testes rodam sem rede: a verificação de DNS é testada à parte, com um verificador falso.
     check-domain: false

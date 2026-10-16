@@ -3,6 +3,7 @@ package com.rastreador.order;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,8 @@ class OrderTest {
                 new Customer("Ana", "11999990000"),
                 new Address("Rua A", "10", null, "Centro", "São Paulo", "SP", "01000-000"),
                 List.of(new OrderItem("Pizza", 2, 4990), new OrderItem("Refrigerante", 1, 800)),
-                user);
+                user,
+                Instant.now());
     }
 
     @Test
@@ -39,7 +41,8 @@ class OrderTest {
                 new Customer("Ana", null),
                 new Address("Rua A", "10", null, "Centro", "São Paulo", "SP", "01000-000"),
                 List.of(),
-                user))
+                user,
+                Instant.now()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -47,9 +50,9 @@ class OrderTest {
     void fullFlowRecordsEveryTransition() {
         Order order = newOrder();
 
-        order.changeStatus(OrderStatus.EM_PREPARO, user);
-        order.changeStatus(OrderStatus.SAIU_PARA_ENTREGA, user);
-        order.changeStatus(OrderStatus.ENTREGUE, user);
+        order.changeStatus(OrderStatus.EM_PREPARO, user, Instant.now());
+        order.changeStatus(OrderStatus.SAIU_PARA_ENTREGA, user, Instant.now());
+        order.changeStatus(OrderStatus.ENTREGUE, user, Instant.now());
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.ENTREGUE);
         assertThat(order.getHistory())
@@ -61,10 +64,10 @@ class OrderTest {
     @Test
     void invalidTransitionThrowsAndKeepsState() {
         Order order = newOrder();
-        order.changeStatus(OrderStatus.EM_PREPARO, user);
-        order.changeStatus(OrderStatus.SAIU_PARA_ENTREGA, user);
+        order.changeStatus(OrderStatus.EM_PREPARO, user, Instant.now());
+        order.changeStatus(OrderStatus.SAIU_PARA_ENTREGA, user, Instant.now());
 
-        assertThatThrownBy(() -> order.changeStatus(OrderStatus.CANCELADO, user))
+        assertThatThrownBy(() -> order.changeStatus(OrderStatus.CANCELADO, user, Instant.now()))
                 .isInstanceOf(InvalidStatusTransitionException.class)
                 .hasMessageContaining("SAIU_PARA_ENTREGA");
 
@@ -75,9 +78,9 @@ class OrderTest {
     @Test
     void finalOrderCannotChange() {
         Order order = newOrder();
-        order.changeStatus(OrderStatus.CANCELADO, user);
+        order.changeStatus(OrderStatus.CANCELADO, user, Instant.now());
 
-        assertThatThrownBy(() -> order.changeStatus(OrderStatus.EM_PREPARO, user))
+        assertThatThrownBy(() -> order.changeStatus(OrderStatus.EM_PREPARO, user, Instant.now()))
                 .isInstanceOf(InvalidStatusTransitionException.class)
                 .hasMessageContaining("não pode mais ser alterado");
     }

@@ -1,5 +1,6 @@
 package com.rastreador.order;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Locale;
 
@@ -24,13 +25,15 @@ public class OrderService {
     private final UserRepository userRepository;
     private final SlaPolicy slaPolicy;
     private final ApplicationEventPublisher events;
+    private final Clock clock;
 
     public OrderService(OrderRepository orderRepository, UserRepository userRepository, SlaPolicy slaPolicy,
-            ApplicationEventPublisher events) {
+            ApplicationEventPublisher events, Clock clock) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.slaPolicy = slaPolicy;
         this.events = events;
+        this.clock = clock;
     }
 
     @Transactional
@@ -51,7 +54,8 @@ public class OrderService {
                         address.district().trim(), address.city().trim(), address.state().trim().toUpperCase(Locale.ROOT),
                         address.zipCode().trim()),
                 items,
-                userReference(currentUser));
+                userReference(currentUser),
+                clock.instant());
 
         Order saved = orderRepository.save(order);
         publishChange(saved);
@@ -77,7 +81,7 @@ public class OrderService {
         if (expectedVersion != null && expectedVersion != order.getVersion()) {
             throw new StaleOrderException(id);
         }
-        order.changeStatus(next, userReference(currentUser));
+        order.changeStatus(next, userReference(currentUser), clock.instant());
         Order saved = orderRepository.saveAndFlush(order);
         publishChange(saved);
         return toResponse(saved);
@@ -89,12 +93,12 @@ public class OrderService {
                 order.getVersion()));
     }
 
-    /** Lança 404 se o código não existir; usado antes de abrir o stream público. */
+    /** Status atual do pedido do link; 404 se o código não existir. Usado antes de abrir o stream público. */
     @Transactional(readOnly = true)
-    public void requireTrackingCode(String code) {
-        if (orderRepository.findByTrackingCode(code).isEmpty()) {
-            throw new NotFoundException("Pedido não encontrado. Confira o link de rastreio.");
-        }
+    public OrderStatus trackingStatus(String code) {
+        return orderRepository.findByTrackingCode(code)
+                .map(Order::getStatus)
+                .orElseThrow(() -> new NotFoundException("Pedido não encontrado. Confira o link de rastreio."));
     }
 
     /** Visão pública do pedido para o link de rastreio (sem dados pessoais). */
