@@ -3,6 +3,8 @@ import { AuthProvider } from './auth/AuthContext'
 import { GuestRoute, ProtectedRoute } from './auth/ProtectedRoute'
 import { AppLayout } from './components/AppLayout'
 import { LoginPage } from './pages/LoginPage'
+import { OrderDetailPage } from './pages/OrderDetailPage'
+import { OrdersPage } from './pages/OrdersPage'
 import { RegisterPage } from './pages/RegisterPage'
 
 export default function App() {
@@ -15,7 +17,8 @@ export default function App() {
         </Route>
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
-            <Route path="/orders" element={<p className="text-slate-500">Pedidos em breve.</p>} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/orders/:id" element={<OrderDetailPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/orders" replace />} />
