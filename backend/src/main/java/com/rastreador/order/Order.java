@@ -63,6 +63,10 @@ public class Order {
     @Column(nullable = false)
     private long version;
 
+    /** Código do link público de rastreio (/rastreio/{codigo}). */
+    @Column(name = "tracking_code", nullable = false, unique = true, length = 32, updatable = false)
+    private String trackingCode;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id")
     private List<OrderItem> items = new ArrayList<>();
@@ -87,6 +91,7 @@ public class Order {
         order.createdAt = now;
         order.updatedAt = now;
         order.status = OrderStatus.RECEBIDO;
+        order.trackingCode = TrackingCodes.generate();
 
         items.forEach(order::addItem);
         order.history.add(new OrderStatusHistory(order, null, OrderStatus.RECEBIDO, createdBy, now));
@@ -140,6 +145,10 @@ public class Order {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public String getTrackingCode() {
+        return trackingCode;
     }
 
     /** Quando o pedido entrou na etapa atual (última mudança do histórico). */

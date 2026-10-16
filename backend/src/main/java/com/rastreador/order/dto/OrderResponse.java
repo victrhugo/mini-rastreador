@@ -29,7 +29,8 @@ public record OrderResponse(
         long version,
         Instant stageStartedAt,
         Instant stageDeadline,
-        boolean delayed) {
+        boolean delayed,
+        String trackingCode) {
 
     public record CustomerResponse(String name, String phone) {
     }
@@ -66,7 +67,8 @@ public record OrderResponse(
                 order.getVersion(),
                 order.getStageStartedAt(),
                 stageDeadline,
-                delayed);
+                delayed,
+                order.getTrackingCode());
     }
 
     private static ItemResponse toItem(OrderItem item) {

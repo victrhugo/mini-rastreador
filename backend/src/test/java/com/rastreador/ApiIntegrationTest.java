@@ -4,9 +4,11 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -348,6 +350,41 @@ class ApiIntegrationTest {
 
             mvc.perform(get("/api/orders/{id}", id).header(HttpHeaders.AUTHORIZATION, bearer()))
                     .andExpect(jsonPath("$.status").value("EM_PREPARO"));
+        }
+
+        @Test
+        void publicTrackingShowsProgressWithoutPersonalData() throws Exception {
+            String created = mvc.perform(post("/api/orders")
+                            .header(HttpHeaders.AUTHORIZATION, bearer())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(ORDER_JSON))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.trackingCode").isNotEmpty())
+                    .andReturn().getResponse().getContentAsString();
+            Integer id = JsonPath.read(created, "$.id");
+            String code = JsonPath.read(created, "$.trackingCode");
+            changeStatus(id, "EM_PREPARO").andExpect(status().isOk());
+
+            // Sem token: a rota é pública.
+            mvc.perform(get("/api/public/tracking/{code}", code))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.orderNumber").value(id))
+                    .andExpect(jsonPath("$.status").value("EM_PREPARO"))
+                    .andExpect(jsonPath("$.customerFirstName").value("Ana"))
+                    .andExpect(jsonPath("$.district").value("Centro"))
+                    .andExpect(jsonPath("$.history.length()").value(2))
+                    .andExpect(jsonPath("$.items[0].description").value("Pizza calabresa"))
+                    .andExpect(jsonPath("$.customer").doesNotExist())
+                    .andExpect(jsonPath("$.street").doesNotExist())
+                    .andExpect(jsonPath("$.createdBy").doesNotExist())
+                    .andExpect(content().string(not(containsString("11999990000"))))
+                    .andExpect(content().string(not(containsString("Rua das Flores"))));
+        }
+
+        @Test
+        void unknownTrackingCodeReturns404() throws Exception {
+            mvc.perform(get("/api/public/tracking/codigo-que-nao-existe"))
+                    .andExpect(status().isNotFound());
         }
 
         @Test

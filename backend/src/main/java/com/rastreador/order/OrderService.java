@@ -11,6 +11,7 @@ import com.rastreador.common.NotFoundException;
 import com.rastreador.common.UnauthorizedException;
 import com.rastreador.order.dto.CreateOrderRequest;
 import com.rastreador.order.dto.OrderResponse;
+import com.rastreador.order.dto.PublicTrackingResponse;
 import com.rastreador.user.User;
 import com.rastreador.user.UserRepository;
 
@@ -71,6 +72,14 @@ public class OrderService {
         }
         order.changeStatus(next, userReference(currentUser));
         return toResponse(orderRepository.saveAndFlush(order));
+    }
+
+    /** Visão pública do pedido para o link de rastreio (sem dados pessoais). */
+    @Transactional(readOnly = true)
+    public PublicTrackingResponse findByTrackingCode(String code) {
+        Order order = orderRepository.findByTrackingCode(code)
+                .orElseThrow(() -> new NotFoundException("Pedido não encontrado. Confira o link de rastreio."));
+        return PublicTrackingResponse.from(order, slaPolicy.deadlineFor(order));
     }
 
     private OrderResponse toResponse(Order order) {
