@@ -186,7 +186,7 @@ function Kpi({ label, value, Icon, loading, highlight }: {
 function OrderList({ orders }: { orders: Order[] }) {
   return (
     <Card className="overflow-hidden">
-      <div className="hidden grid-cols-[96px_minmax(0,1.6fr)_120px_180px_212px] gap-4 border-b border-line bg-surface-2/50 px-5 py-2.5 text-xs font-medium text-ink-3 md:grid">
+      <div className="hidden grid-cols-[96px_minmax(0,1.6fr)_110px_170px_260px] gap-4 border-b border-line bg-surface-2/50 px-5 py-2.5 text-xs font-medium text-ink-3 md:grid">
         <span>Pedido</span>
         <span>Cliente</span>
         <span className="text-right">Total</span>
@@ -218,7 +218,7 @@ function OrderRow({ order }: { order: Order }) {
   const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0)
 
   return (
-    <div className="group relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 px-5 py-4 transition-colors hover:bg-surface-2/60 md:grid-cols-[96px_minmax(0,1.6fr)_120px_180px_212px]">
+    <div className="group relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 px-5 py-4 transition-colors hover:bg-surface-2/60 md:grid-cols-[96px_minmax(0,1.6fr)_110px_170px_260px]">
       <Link
         to={`/orders/${order.id}`}
         className="absolute inset-0 rounded-none focus-visible:outline-offset-[-2px]"
@@ -313,12 +313,16 @@ function BoardCard({ order }: { order: Order }) {
         <span className="font-mono">#{order.id}</span>
         <span>{formatRelative(order.createdAt)}</span>
       </div>
-      <p className="mt-1.5 truncate font-medium">{order.customer.name}</p>
-      <p className="truncate text-[13px] text-ink-2">{order.address.street}, {order.address.number}</p>
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <span className="text-sm font-medium tabular-nums">{formatMoney(order.total)}</span>
-        <div className="relative"><QuickActions order={order} /></div>
+      <div className="mt-1.5 flex items-baseline justify-between gap-3">
+        <p className="truncate font-medium">{order.customer.name}</p>
+        <span className="shrink-0 text-sm font-medium tabular-nums">{formatMoney(order.total)}</span>
       </div>
+      <p className="truncate text-[13px] text-ink-2">{order.address.street}, {order.address.number}</p>
+      {order.allowedTransitions.length > 0 && (
+        <div className="relative mt-3 [&>div]:justify-end">
+          <QuickActions order={order} narrow />
+        </div>
+      )}
     </div>
   )
 }

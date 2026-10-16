@@ -43,8 +43,11 @@ export function StatusActions({ order }: { order: Order }) {
   )
 }
 
-/** Versão compacta para a lista e o quadro: avançar etapa e cancelar. */
-export function QuickActions({ order }: { order: Order }) {
+/**
+ * Versão compacta para a lista e o quadro: avançar etapa e cancelar.
+ * Em espaços estreitos (cartões do quadro), o cancelar vira um botão só com ícone.
+ */
+export function QuickActions({ order, narrow }: { order: Order; narrow?: boolean }) {
   const { change, pending } = useStatusChange(order)
   const next = nextStep(order.allowedTransitions)
   const canCancel = order.allowedTransitions.includes('CANCELADO')
@@ -53,36 +56,40 @@ export function QuickActions({ order }: { order: Order }) {
 
   return (
     <div className="flex items-center gap-1.5">
-      {canCancel && <CancelOrder order={order} change={change} pending={pending} compact />}
+      {canCancel && <CancelOrder order={order} change={change} pending={pending} compact iconOnly={narrow} />}
       {next && <NextStepButton status={next} loading={pending} onClick={() => change(next)} size="sm" />}
     </div>
   )
 }
 
-function CancelOrder({ order, change, pending, compact }: {
+function CancelOrder({ order, change, pending, compact, iconOnly }: {
   order: Order
   change: ChangeStatus
   pending: boolean
   compact?: boolean
+  iconOnly?: boolean
 }) {
   const [open, setOpen] = useState(false)
 
   return (
     <>
       {compact ? (
-        <button
-          type="button"
+        <Button
+          size="sm"
+          variant="danger"
           disabled={pending}
+          icon={<XCircleIcon className="size-4" weight="bold" />}
           onClick={(event) => {
+            event.preventDefault()
             event.stopPropagation()
             setOpen(true)
           }}
-          className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-3 transition-colors hover:bg-danger-soft hover:text-danger disabled:opacity-50"
           aria-label={`Cancelar pedido #${order.id}`}
           title="Cancelar pedido"
+          className={iconOnly ? 'w-8 px-0' : ''}
         >
-          <XCircleIcon className="size-[18px]" />
-        </button>
+          {!iconOnly && 'Cancelar'}
+        </Button>
       ) : (
         <Button variant="danger" disabled={pending} onClick={() => setOpen(true)}>
           Cancelar
