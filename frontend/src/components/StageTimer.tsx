@@ -1,6 +1,6 @@
 import { ClockIcon, WarningIcon } from '@phosphor-icons/react'
 import { useNow } from '../hooks/useNow'
-import { formatMinutes, stageTiming } from '../sla'
+import { formatElapsed, formatMinutes, stageTiming } from '../sla'
 import type { Order } from '../types'
 
 /** "12 min nesta etapa" ou, depois do prazo, "Atrasado 7 min". Nada para etapas finais. */
@@ -20,7 +20,7 @@ export function StageTimer({ order }: { order: Order }) {
   return (
     <span className="inline-flex items-center gap-1 text-xs text-ink-3" title={`Limite da etapa: ${formatMinutes(timing.limit)}`}>
       <ClockIcon className="size-3.5" />
-      {formatMinutes(timing.elapsed)} nesta etapa
+      {formatElapsed(timing.elapsed)} nesta etapa
     </span>
   )
 }

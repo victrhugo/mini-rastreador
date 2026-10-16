@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatMinutes, stageTiming } from './sla'
+import { formatElapsed, formatMinutes, stageTiming } from './sla'
 
 const STARTED = '2026-10-16T12:00:00Z'
 const at = (minutes: number) => new Date(STARTED).getTime() + minutes * 60_000
@@ -30,5 +30,12 @@ describe('formatMinutes', () => {
     [65, '1 h 5 min'],
   ])('%i -> %s', (minutes, expected) => {
     expect(formatMinutes(minutes)).toBe(expected)
+  })
+})
+
+describe('formatElapsed', () => {
+  it('evita "0 min" em textos corridos', () => {
+    expect(formatElapsed(0)).toBe('menos de 1 min')
+    expect(formatElapsed(3)).toBe('3 min')
   })
 })

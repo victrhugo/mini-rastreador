@@ -21,7 +21,7 @@ import { TrackingLink } from '../components/TrackingLink'
 import { Alert, Avatar, buttonClass, Card, Skeleton } from '../components/ui'
 import { formatDateTime, formatMoney, formatRelative } from '../format'
 import { useNow } from '../hooks/useNow'
-import { formatMinutes, stageTiming } from '../sla'
+import { formatElapsed, formatMinutes, stageTiming } from '../sla'
 import { STATUS } from '../status'
 import type { Order } from '../types'
 
@@ -239,13 +239,13 @@ function StageDeadline({ order }: { order: Order }) {
     return (
       <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-danger-soft px-2 py-1 text-xs font-medium text-danger">
         <WarningIcon className="size-3.5" weight="bold" />
-        Atrasado {formatMinutes(timing.late)}: está há {formatMinutes(timing.elapsed)} nesta etapa (limite {formatMinutes(timing.limit)})
+        Atrasado: está há {formatElapsed(timing.elapsed)} nesta etapa, o limite é {formatMinutes(timing.limit)}
       </p>
     )
   }
   return (
     <p className="mt-1 text-xs text-ink-3">
-      Há {formatMinutes(timing.elapsed)} nesta etapa, limite de {formatMinutes(timing.limit)}
+      Há {formatElapsed(timing.elapsed)} nesta etapa, limite de {formatMinutes(timing.limit)}
     </p>
   )
 }

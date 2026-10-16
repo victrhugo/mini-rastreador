@@ -32,3 +32,8 @@ export function formatMinutes(minutes: number) {
   const rest = minutes % 60
   return rest ? `${hours} h ${rest} min` : `${hours} h`
 }
+
+/** Tempo decorrido para textos corridos: 0 -> "menos de 1 min". */
+export function formatElapsed(minutes: number) {
+  return minutes === 0 ? 'menos de 1 min' : formatMinutes(minutes)
+}
