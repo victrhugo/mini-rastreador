@@ -83,7 +83,7 @@ cd frontend && npm test
   de conexões SSE, consulta de CEP com servidor HTTP simulado e integração da API com
   MockMvc e SQLite em memória (cadastro, login, 401, 429, validação, CRUD, fluxo completo,
   transições inválidas, conflito de versão, rastreio público sem dados pessoais e streams).
-- **Front-end (63):** Vitest e Testing Library para máscaras, preço, regras de etapa, prazos,
+- **Front-end (64):** Vitest e Testing Library para máscaras, preço, regras de etapa, prazos,
   sugestão de e-mail, telefone, leitura do stream SSE, busca de CEP e o componente de ações
   de status (só mostra o que a API permite, envia a versão, confirma o cancelamento e exibe
   o erro 409), além de um teste que garante que a CSP do nginx libera o script do `index.html`.
